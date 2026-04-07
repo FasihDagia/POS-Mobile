@@ -1,5 +1,6 @@
 from tkinter import ttk,messagebox,Frame
 from src.database import database
+from src.utils import center_window,destroy_widgets
 
 
 class windows:
@@ -8,17 +9,11 @@ class windows:
         self.root = root
         self.db = database(self.root)
     
-    def center_window(self,width, height):
-        screen_width = self.root.winfo_screenwidth()
-        screen_height = self.root.winfo_screenheight()
-        x = (screen_width // 2) - (width // 2)
-        y = (screen_height // 2) - (height // 2)
-        self.root.geometry(f"{width}x{height}+{x}+{y}")
-        self.root.minsize(width, height)
-
     def home_page(self):
-        
-        self.center_window(600,400)
+
+        destroy_widgets(self.root)
+
+        center_window(self.root, 600,400)
         self.root.title("HomePage")
 
         buttons = ["Stock","Credit Accounts","Sales","Invoicing","Stock Entry"]
@@ -44,5 +39,7 @@ class windows:
                 col = 0
 
     def stocks_window(self):
-        self.center_window(800,500)
+        destroy_widgets(self.root)
+
+        center_window(self.root, 800,500)
         self.root.title("Stocks")
