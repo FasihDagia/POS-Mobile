@@ -3,13 +3,14 @@ import tkinter as tk
 from tkinter import messagebox
 from pymongo import MongoClient
 from pymongo.errors import PyMongoError
-from dot
+from dotenv import load_dotenv
+load_dotenv()
 
 class database:
     def __init__(self,root):
+        
         try:
             self.client = MongoClient(
-                ,
                 serverSelectionTimeoutMS=5000
             )
             self.client.server_info()
