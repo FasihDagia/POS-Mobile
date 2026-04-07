@@ -1,16 +1,17 @@
 import sys
-import tkinter as tk
+import os
 from tkinter import messagebox
 from pymongo import MongoClient
 from pymongo.errors import PyMongoError
 from dotenv import load_dotenv
-load_dotenv()
 
 class database:
     def __init__(self,root):
-        
+        load_dotenv()
+        mongo_uri = os.getenv("MONGO_URI")
         try:
             self.client = MongoClient(
+                mongo_uri,
                 serverSelectionTimeoutMS=5000
             )
             self.client.server_info()
