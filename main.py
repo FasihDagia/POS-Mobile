@@ -1,5 +1,10 @@
+import tkinter as tk
+from src.windows import windows
 def main():
-    print("Hello from pos-mobile!")
+    root = tk.Tk()
+    win = windows(root)
+    win.home_page()
+    root.mainloop()
 
 
 if __name__ == "__main__":
