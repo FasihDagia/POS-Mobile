@@ -1,6 +1,6 @@
-from tkinter import ttk,messagebox,Frame,Toplevel,PhotoImage
+from tkinter import ttk,messagebox,Frame,Toplevel,PhotoImage,END
 from src.database import database
-from src.utils import center_window,destroy_widgets,create_treeview
+from src.utils import center_window,destroy_widgets,create_treeview,get_selected
 
 
 class windows:
@@ -209,11 +209,11 @@ class windows:
     def stocks_window(self):
         destroy_widgets(self.root)
 
-        center_window(self.root, 1000,550)
+        center_window(self.root, 1000,600)
         self.root.title("Stocks")
 
         style = ttk.Style()
-        style.configure("Treeview.Heading", font=("Helvetica", 10, "bold"))  
+        style.configure("Log.TButton", font=("Helvetica", 11),padding=6,borderwidth=2)
 
         img = PhotoImage(file="E:/POS Mobile/assets/back.png")
         smaller_img = img.subsample(30, 30)
@@ -222,6 +222,52 @@ class windows:
         bk_btn.image = smaller_img
         bk_btn.pack(anchor="nw", padx=10, pady=10)
 
+        ttk.Label(self.root,text="Remaining Stock",font=("Helvetica",20,"bold")).pack(pady=10)
+
+        def show_imei():
+            row = get_selected(table_stocks)
+            if row:
+                popup = Toplevel(self.root)
+                popup.title("IMEI Nos")
+                center_window(popup,350,550)
+
+                img = PhotoImage(file="E:/POS Mobile/assets/back.png")
+                smaller_img = img.subsample(30, 30)
+
+                bk_btn = ttk.Button(popup,image=smaller_img,cursor="hand2",command=lambda:popup.destroy())
+                bk_btn.image = smaller_img
+                bk_btn.pack(anchor="nw", padx=10, pady=10)
+
+                model = row[2]
+                ttk.Label(popup,text=f"Model:{model}",font=("Helvetica", 16, "bold")).pack(pady=7)
+                table_imei_columns = ["S.NO","IMEI NO"]
+                table_imei_width = [50,150]
+                table_imei = create_treeview(popup,table_imei_columns,table_imei_width,20)
+
+                table_imei.insert("", END, values=(
+                    "1",
+                    "123456789"
+                ))
+
+            else:
+                messagebox.showerror("Empty Input","Please Select a Mobile model")
+
+        sh_btn = ttk.Button(self.root,text="Show IMEI",width=15,cursor="hand2",style="Log.TButton",command=show_imei)
+        sh_btn.pack(pady=10)
+
         table_stock_columns =["S.NO", "Date Purchase","Model","Storage","Quantity","Purchse Price","Selling Price", "Condition", "IMEI Nos"]
         table_stock_widths= [50,100,120,100,100,120,120,100,120] 
-        table_new_contracts = create_treeview(self.root, table_stock_columns, table_stock_widths,20)
+        table_stocks = create_treeview(self.root, table_stock_columns, table_stock_widths,20)
+
+        table_stocks.insert("", END, values=(
+            1,
+            "12/8/2025",
+            "Iphone 17",
+            "1tb",
+            "2",
+            "350000",
+            "400000",""
+            "BOX PACK",
+            "IMEI"
+
+        ))

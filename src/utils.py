@@ -24,6 +24,10 @@ def create_treeview(parent, columns, widths, height):
     tree_scroll_x = ttk.Scrollbar(frame, orient="horizontal")
     tree_scroll_x.pack(side="bottom", fill="x")
 
+    style = ttk.Style()
+    style.configure("Treeview",foreground="black",rowheight=20,font=("Helvetica", 9))
+    style.configure("Treeview.Heading", font=("Helvetica", 10, "bold"),rowheight=25) 
+
     tree = ttk.Treeview(
         frame,
         columns=columns,
@@ -54,3 +58,13 @@ def create_treeview(parent, columns, widths, height):
     tree.insert = colored_insert
 
     return tree
+
+def get_selected(tree):
+    selected_item = tree.selection()
+
+    if not selected_item:
+        print("No row selected")
+        return
+
+    row = tree.item(selected_item)["values"]
+    return row
