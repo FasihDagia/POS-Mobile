@@ -3,6 +3,7 @@ import os
 from tkinter import messagebox
 from pymongo import MongoClient
 from pymongo.errors import PyMongoError
+import hashlib
 from dotenv import load_dotenv
 
 class database:
@@ -30,7 +31,31 @@ class database:
         self.stock = self.db["stock"]
         self.credit_accounts= self.db["credit_accounts"]
         self.sales = self.db["sales"]
+        self.auth = self.db["auth"]
     
+    def hash_password(self, password):
+        return hashlib.sha256(password.encode()).hexdigest()
+
+
+    def get_password(self):
+        data = self.auth.find_one({"type": "password"})
+        return data["value"] if data else None
+
+
+    def set_password(self, password):
+        hashed = self.hash_password(password)
+
+        self.auth.update_one(
+            {"type": "password"},
+            {"$set": {"value": hashed}},
+            upsert=True
+        )
+
+
+    def verify_password(self, password):
+        stored = self.get_password()
+        return stored == self.hash_password(password)
+
     def add_stock(self, model, brand, storage, ram, battery, camera, condition, specs, purchase_date, quantity, purchase_price,sell_price,imei_nos):
         data = {
             "model": model,
