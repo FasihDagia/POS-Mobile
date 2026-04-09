@@ -4,7 +4,8 @@ def main():
     root = tk.Tk()
     win = windows(root)
     # win.landing_page()
-    win.home_page()
+    # win.home_page()
+    win.stock_entry()
     root.mainloop()
 
 

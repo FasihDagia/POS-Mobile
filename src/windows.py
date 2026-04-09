@@ -1,4 +1,5 @@
-from tkinter import ttk,messagebox,Frame,Toplevel,PhotoImage,END
+from tkinter import ttk,messagebox,Frame,Toplevel,PhotoImage,END,Scrollbar,VERTICAL,RIGHT,Y,Canvas
+from tkinter import *
 from src.database import database
 from src.utils import center_window,destroy_widgets,create_treeview,get_selected
 
@@ -189,8 +190,8 @@ class windows:
         style.configure("Module.TButton", font=("Helvetica", 11),borderwidth=4,padding=(4,25))
         style.configure("Logout.TButton", font=("Helvetica", 11),borderwidth=4,padding=2)
         
-        buttons = ["Stock","Credit Accounts","Sales","Invoicing","Stock Entry"]
-        commmands = [self.stocks_window]
+        buttons = ["Stock","Stock Entry","Credit Accounts","Sales","Invoicing"]
+        commmands = [self.stocks_window,self.stock_entry]
 
         btn_frame = Frame(self.root)
         btn_frame.pack(pady=5)
@@ -199,7 +200,7 @@ class windows:
         col = 0
         counter = 0
         for button in buttons:            
-            ttk.Button(btn_frame, text=button,style="Module.TButton" ,width=20, cursor="hand2",command=commmands[0]).grid(padx=10, pady=20, row=row,column=col)
+            ttk.Button(btn_frame, text=button,style="Module.TButton" ,width=20, cursor="hand2",command=commmands[counter]).grid(padx=10, pady=20, row=row,column=col)
             col+=1
             counter+=1
             if col == 3:
@@ -271,3 +272,109 @@ class windows:
             "IMEI"
 
         ))
+
+    def stock_entry(self):
+
+        destroy_widgets(self.root)
+        center_window(self.root,600,450)
+
+        self.root.title("Stock Entry")
+
+        style = ttk.Style()
+        style.configure("Module.TButton", font=("Helvetica", 11),padding=6,borderwidth=2)
+
+        img = PhotoImage(file="E:/POS Mobile/assets/back.png")
+        smaller_img = img.subsample(25, 25)
+
+        bk_btn = ttk.Button(self.root,image=smaller_img,cursor="hand2",style="Logout.TButton",command=self.home_page)
+        bk_btn.image = smaller_img
+        bk_btn.pack(anchor="nw", padx=10, pady=10)
+
+        ttk.Label(self.root,text="Stock Entry",font=("Helvetica",20,"bold")).pack(pady=5)
+
+        font = ("Helvetica",10,"bold")
+        entry_frame = Frame(self.root)
+        entry_frame.pack(pady=10)
+
+        ttk.Label(entry_frame,text="Date",font=font).grid(row=0,column=0,padx=5,pady=10)
+        date_entry = ttk.Entry(entry_frame,font=font)
+        date_entry.grid(row=0,column=1,padx=5,pady=10)
+
+        ttk.Label(entry_frame,text="Model",font=font).grid(row=0,column=2,padx=5,pady=10)
+        model_entry = ttk.Entry(entry_frame,font=font)
+        model_entry.grid(row=0,column=3,padx=5,pady=10)
+
+        ttk.Label(entry_frame,text="Storage",font=font).grid(row=1,column=0,padx=5,pady=10)
+        storage_entry = ttk.Entry(entry_frame,font=font)
+        storage_entry.grid(row=1,column=1,padx=5,pady=10)
+
+        ttk.Label(entry_frame,text="Condition",font=font).grid(row=1,column=2,padx=5,pady=10)
+        conditions = ["New","Used"]
+        combo = ttk.Combobox(entry_frame, values=conditions)
+        combo.grid(row=1,column=3,padx=5,pady=10)
+        combo.set("Select a condition")
+
+        ttk.Label(entry_frame,text="Quantity",font=font).grid(row=2,column=0,padx=5,pady=10)
+        quantity_entry = ttk.Entry(entry_frame,font=font)
+        quantity_entry.grid(row=2,column=1,padx=5,pady=10)
+
+        ttk.Label(entry_frame,text="Purchase Price",font=font).grid(row=2,column=2,padx=5,pady=10)
+        purchase_price_entry = ttk.Entry(entry_frame,font=font)
+        purchase_price_entry.grid(row=2,column=3,padx=5,pady=10)
+
+        ttk.Label(entry_frame,text="Sell Price",font=font).grid(row=3,column=0,padx=5,pady=10)
+        sell_price_entry = ttk.Entry(entry_frame,font=font)
+        sell_price_entry.grid(row=3,column=1,padx=5,pady=10)
+
+        ttk.Label(entry_frame,text="IMEI",font=font).grid(row=3,column=2,padx=5,pady=10)
+        imei_button = ttk.Button(entry_frame,text="Enter IMEI Nos",cursor="hand2",command=lambda:imei_entry(quantity_entry))
+        IMEI_entry = ttk.Entry(entry_frame,font=font)
+        imei_button.grid(row=3,column=3,padx=5,pady=10)
+
+        def imei_entry(quantity):
+            quan = quantity.get()
+            if quan:
+                popup = Toplevel(self.root)
+                popup.title("IMEI Entry")
+                center_window(popup, 250, 350)
+                ttk.Label(popup, text="IMEI Entry", font=("Helvetica", 12, "bold")).pack(pady=10)
+
+                container = Frame(popup)
+                container.pack(fill="both", expand=True)
+
+                canvas = Canvas(container)
+                scrollbar = ttk.Scrollbar(container, orient="vertical", command=canvas.yview)
+
+                scroll_frame = Frame(canvas)
+
+                scroll_frame.bind(
+                    "<Configure>",
+                    lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
+                )
+
+                canvas.create_window((0, 0), window=scroll_frame, anchor="nw")
+                canvas.configure(yscrollcommand=scrollbar.set)
+
+                canvas.pack(side="left", fill="both", expand=True)
+                scrollbar.pack(side="right", fill="y")
+
+                def _on_mousewheel(event):
+                    canvas.yview_scroll(-1 * (event.delta // 120), "units")
+
+                canvas.bind_all("<MouseWheel>", _on_mousewheel)
+
+                style = ttk.Style(scroll_frame)
+                style.configure("Module.TButton",font=("Helvetica",9,"bold"))
+
+                for i in range(int(quan)):
+                    frame = Frame(scroll_frame)
+                    frame.pack(pady=5)
+
+                    ttk.Label(frame, text=f"IMEI {i+1}").pack(side="left", padx=5)
+                    ttk.Entry(frame, width=20).pack(side="left")
+                ttk.Button(scroll_frame,text="Submit",cursor="hand2",style="Module.TButton").pack(pady=5)
+            else:
+                messagebox.showerror("No Quantity","Plese Enter Quantity")
+
+        ttk.Button(self.root,text="Add Stock",cursor="hand2",style="Module.TButton").pack(pady=10)
+
