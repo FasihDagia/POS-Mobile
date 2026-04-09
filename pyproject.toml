@@ -6,5 +6,6 @@ readme = "README.md"
 requires-python = ">=3.14"
 dependencies = [
     "dotenv>=0.9.9",
+    "pillow>=12.2.0",
     "pymongo>=4.16.0",
 ]
