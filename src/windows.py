@@ -1,4 +1,4 @@
-from tkinter import ttk,messagebox,Frame,Toplevel,PhotoImage,END,Scrollbar,VERTICAL,RIGHT,Y,Canvas
+from tkinter import ttk,messagebox,Frame,Toplevel,PhotoImage,END,Canvas
 from tkinter import *
 from src.database import database
 from src.utils import center_window,destroy_widgets,create_treeview,get_selected
@@ -9,6 +9,7 @@ class windows:
     def __init__(self,root):
         self.root = root
         self.db = database(self.root)
+        self.imeis = []
 
     def landing_page(self):
 
@@ -310,9 +311,9 @@ class windows:
 
         ttk.Label(entry_frame,text="Condition",font=font).grid(row=1,column=2,padx=5,pady=10)
         conditions = ["New","Used"]
-        combo = ttk.Combobox(entry_frame, values=conditions)
-        combo.grid(row=1,column=3,padx=5,pady=10)
-        combo.set("Select a condition")
+        condition_entry = ttk.Combobox(entry_frame, values=conditions)
+        condition_entry.grid(row=1,column=3,padx=5,pady=10)
+        condition_entry.set("Select a condition")
 
         ttk.Label(entry_frame,text="Quantity",font=font).grid(row=2,column=0,padx=5,pady=10)
         quantity_entry = ttk.Entry(entry_frame,font=font)
@@ -366,15 +367,28 @@ class windows:
                 style = ttk.Style(scroll_frame)
                 style.configure("Module.TButton",font=("Helvetica",9,"bold"))
 
-                for i in range(int(quan)):
-                    frame = Frame(scroll_frame)
-                    frame.pack(pady=5)
+                frame = Frame(scroll_frame)
+                frame.pack(pady=5)
 
-                    ttk.Label(frame, text=f"IMEI {i+1}").pack(side="left", padx=5)
-                    ttk.Entry(frame, width=20).pack(side="left")
-                ttk.Button(scroll_frame,text="Submit",cursor="hand2",style="Module.TButton").pack(pady=5)
+                for i in range(int(quan)):
+                    ttk.Label(frame, text=f"IMEI {i+1}").grid(row=i,column=0, padx=5, pady=7)
+                    ttk.Entry(frame, width=20).grid(row=i,column=1,pady=7)
+                ttk.Button(scroll_frame,text="Submit",cursor="hand2",style="Module.TButton",command=get_imeis).pack(pady=5)
+
+                def get_imeis():
+                    for entry in frame.winfo_children():
+                        if not entry:
+                            messagebox.showerror("Empty Input","Please Enter all Inputs")
+                            break
+                    for entry in frame.winfo_children():
+                        self.imeis.append(entry.get())
             else:
                 messagebox.showerror("No Quantity","Plese Enter Quantity")
 
-        ttk.Button(self.root,text="Add Stock",cursor="hand2",style="Module.TButton").pack(pady=10)
+        ttk.Button(self.root,text="Add Stock",
+                   cursor="hand2",style="Module.TButton",
+                   command=lambda:self.db.add_stock(model_entry.get(),storage_entry.get(),
+                                                    condition_entry.get(),date_entry.get(),
+                                                    quantity_entry.get(),purchase_price_entry.get(),
+                                                    sell_price_entry.get(),self.imeis)).pack(pady=10)
 

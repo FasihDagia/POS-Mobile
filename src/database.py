@@ -56,23 +56,27 @@ class database:
         stored = self.get_password()
         return stored == self.hash_password(password)
 
-    def add_stock(self, model, brand, storage, ram, battery, camera, condition, purchase_date, quantity, purchase_price,sell_price,imei_nos):
+    def add_stock(self, model, storage, condition, purchase_date, quantity, purchase_price,sell_price,imei_nos):
+
         data = {
-            "model": model,
-            "brand": brand,
-            "storage": storage,
-            "ram": ram,
-            "battery": battery,
-            "camera": camera,
-            "condition": condition,
             "purchase_date": purchase_date,
-            "sell_date": "",
+            "model": model,
+            "storage": storage,
+            "condition": condition,
             "quantity": quantity,
             "purchase_price": purchase_price,
             "sell_price": sell_price,
             "imei_nos":imei_nos
         }
 
-        self.stock.insert_one(data)
+        filter = {
+            "model": model,
+            "storage": storage,
+            "condition": condition,
+        }
 
+        exist = self.stock.find(filter)
+
+        self.stock.insert_one(data)
+        messagebox.showinfo("Success","Stock added successfully!")
     
