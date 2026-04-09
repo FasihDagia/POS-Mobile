@@ -209,5 +209,19 @@ class windows:
     def stocks_window(self):
         destroy_widgets(self.root)
 
-        center_window(self.root, 800,500)
+        center_window(self.root, 1000,550)
         self.root.title("Stocks")
+
+        style = ttk.Style()
+        style.configure("Treeview.Heading", font=("Helvetica", 10, "bold"))  
+
+        img = PhotoImage(file="E:/POS Mobile/assets/back.png")
+        smaller_img = img.subsample(30, 30)
+
+        bk_btn = ttk.Button(self.root,image=smaller_img,cursor="hand2",command=self.home_page)
+        bk_btn.image = smaller_img
+        bk_btn.pack(anchor="nw", padx=10, pady=10)
+
+        table_stock_columns =["S.NO", "Date Purchase","Model","Storage","Quantity","Purchse Price","Selling Price", "Condition", "IMEI Nos"]
+        table_stock_widths= [50,100,120,100,100,120,120,100,120] 
+        table_new_contracts = create_treeview(self.root, table_stock_columns, table_stock_widths,20)

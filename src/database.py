@@ -56,7 +56,7 @@ class database:
         stored = self.get_password()
         return stored == self.hash_password(password)
 
-    def add_stock(self, model, brand, storage, ram, battery, camera, condition, specs, purchase_date, quantity, purchase_price,sell_price,imei_nos):
+    def add_stock(self, model, brand, storage, ram, battery, camera, condition, purchase_date, quantity, purchase_price,sell_price,imei_nos):
         data = {
             "model": model,
             "brand": brand,
@@ -65,7 +65,6 @@ class database:
             "battery": battery,
             "camera": camera,
             "condition": condition,
-            "specs": specs,
             "purchase_date": purchase_date,
             "sell_date": "",
             "quantity": quantity,

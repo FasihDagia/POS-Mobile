@@ -32,7 +32,7 @@ def create_treeview(parent, columns, widths, height):
         xscrollcommand=tree_scroll_x.set,
         height=height
     )
-    tree.pack(fill=tk.X, padx=10)
+    tree.pack(padx=10)
 
     tree_scroll_y.config(command=tree.yview)
     tree_scroll_x.config(command=tree.xview)
