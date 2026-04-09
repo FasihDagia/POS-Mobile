@@ -170,7 +170,6 @@ class windows:
 
         ttk.Button(popup, text="Update Password", style="log_exit.TButton",cursor="hand2",command=update).pack(pady=10)            
 
-
     def home_page(self):
 
         destroy_widgets(self.root)
@@ -178,16 +177,23 @@ class windows:
         center_window(self.root, 600,400)
         self.root.title("HomePage")
 
-        buttons = ["Stock","Credit Accounts","Sales","Invoicing","Stock Entry"]
+        img = PhotoImage(file="E:/POS Mobile/assets/logout.png")
+        smaller_img = img.subsample(25, 25)
+
+        bk_btn = ttk.Button(self.root,image=smaller_img,text="Logout",cursor="hand2",compound="left",style="Logout.TButton",command=self.landing_page)
+        bk_btn.image = smaller_img
+        bk_btn.pack(anchor="ne", padx=10, pady=10)
+
 
         style = ttk.Style()
         style.configure("Module.TButton", font=("Helvetica", 11),borderwidth=4,padding=(4,25))
         style.configure("Logout.TButton", font=("Helvetica", 11),borderwidth=4,padding=2)
         
+        buttons = ["Stock","Credit Accounts","Sales","Invoicing","Stock Entry"]
         commmands = [self.stocks_window]
 
         btn_frame = Frame(self.root)
-        btn_frame.pack(pady=10)
+        btn_frame.pack(pady=5)
         
         row = 0
         col = 0

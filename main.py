@@ -3,7 +3,8 @@ from src.windows import windows
 def main():
     root = tk.Tk()
     win = windows(root)
-    win.landing_page()
+    # win.landing_page()
+    win.home_page()
     root.mainloop()
 
 
