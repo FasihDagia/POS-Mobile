@@ -245,11 +245,7 @@ class windows:
                 table_imei_columns = ["S.NO","IMEI NO"]
                 table_imei_width = [50,150]
                 table_imei = create_treeview(popup,table_imei_columns,table_imei_width,20)
-
-                table_imei.insert("", END, values=(
-                    "1",
-                    "123456789"
-                ))
+                self.db.load_imei(row,table_imei)        
 
             else:
                 messagebox.showerror("Empty Input","Please Select a Mobile model")
@@ -257,22 +253,10 @@ class windows:
         sh_btn = ttk.Button(self.root,text="Show IMEI",width=15,cursor="hand2",style="Log.TButton",command=show_imei)
         sh_btn.pack(pady=10)
 
-        table_stock_columns =["S.NO", "Date Purchase","Model","Storage","Quantity","Purchse Price","Selling Price", "Condition", "IMEI Nos"]
+        table_stock_columns =["S.NO", "Date Purchase","Model","Storage","Quantity", "Condition","Purchse Price","Selling Price"]
         table_stock_widths= [50,100,120,100,100,120,120,100,120] 
         table_stocks = create_treeview(self.root, table_stock_columns, table_stock_widths,20)
-
-        table_stocks.insert("", END, values=(
-            1,
-            "12/8/2025",
-            "Iphone 17",
-            "1tb",
-            "2",
-            "350000",
-            "400000",""
-            "BOX PACK",
-            "IMEI"
-
-        ))
+        self.db.load_stock(table_stocks)
 
     def stock_entry(self):
 
@@ -393,6 +377,6 @@ class windows:
                    cursor="hand2",style="Module.TButton",
                    command=lambda:self.db.add_stock(model_entry.get(),storage_entry.get(),
                                                     condition_entry.get(),date_entry.get(),
-                                                    quantity_entry.get(),purchase_price_entry.get(),
+                                                    int(quantity_entry.get()),purchase_price_entry.get(),
                                                     sell_price_entry.get(),self.imeis)).pack(pady=10)
 

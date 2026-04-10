@@ -5,7 +5,7 @@ def main():
     win = windows(root)
     # win.landing_page()
     # win.home_page()
-    win.stock_entry()
+    win.stocks_window()
     root.mainloop()
 
 

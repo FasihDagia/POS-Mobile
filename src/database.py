@@ -1,6 +1,6 @@
 import sys
 import os
-from tkinter import messagebox
+from tkinter import messagebox,END
 from pymongo import MongoClient
 from pymongo.errors import PyMongoError
 import hashlib
@@ -36,11 +36,9 @@ class database:
     def hash_password(self, password):
         return hashlib.sha256(password.encode()).hexdigest()
 
-
     def get_password(self):
         data = self.auth.find_one({"type": "password"})
         return data["value"] if data else None
-
 
     def set_password(self, password):
         hashed = self.hash_password(password)
@@ -50,7 +48,6 @@ class database:
             {"$set": {"value": hashed}},
             upsert=True
         )
-
 
     def verify_password(self, password):
         stored = self.get_password()
@@ -88,6 +85,47 @@ class database:
         else:
             self.stock.insert_one(data)
 
+        imei_nos.clear()
 
         messagebox.showinfo("Success","Stock added successfully!")
     
+    def load_stock(self,table):
+
+        for row in table.get_children():
+            table.delete(row)
+
+        entries = self.stock.find()
+
+        s_no =1
+        for entry in entries:
+            table.insert("", END,values=(
+                s_no,
+                entry.get("purchase_date"),
+                entry.get("model"),
+                entry.get("storage"),
+                entry.get("quantity"),
+                entry.get("condition"),
+                entry.get("purchase_price"),
+                entry.get("sell_price"),
+            ))
+            s_no+=1
+
+    def load_imei(self,row,table):
+        
+        for ro in table.get_children():
+            table.delete(ro)
+
+        filter = {
+            "model":row[2],
+            "storage":row[3],
+            "condition":row[5]
+        }
+
+        data = self.stock.find_one(filter)
+        imeis = data.get("imei_nos")
+        s_no =1
+        for entry in imeis:
+            table.insert("", END,values=(
+                s_no,
+                entry
+                ))
