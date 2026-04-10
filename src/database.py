@@ -74,9 +74,20 @@ class database:
             "storage": storage,
             "condition": condition,
         }
+        exist = self.stock.find_one(filter)
+        
+        if exist:
+            imei = exist.get("imei_nos")
+            quantity = quantity+ exist["quantity"]
+            for imeis in imei_nos:
+                imei.append(imeis)
+            data["imei_nos"] = imei
+            data["quantity"] = quantity
 
-        exist = self.stock.find(filter)
+            self.stock.update_one(filter,{"$set":data})
+        else:
+            self.stock.insert_one(data)
 
-        self.stock.insert_one(data)
+
         messagebox.showinfo("Success","Stock added successfully!")
     

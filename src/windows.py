@@ -373,7 +373,6 @@ class windows:
                 for i in range(int(quan)):
                     ttk.Label(frame, text=f"IMEI {i+1}").grid(row=i,column=0, padx=5, pady=7)
                     ttk.Entry(frame, width=20).grid(row=i,column=1,pady=7)
-                ttk.Button(scroll_frame,text="Submit",cursor="hand2",style="Module.TButton",command=get_imeis).pack(pady=5)
 
                 def get_imeis():
                     for entry in frame.winfo_children():
@@ -381,7 +380,12 @@ class windows:
                             messagebox.showerror("Empty Input","Please Enter all Inputs")
                             break
                     for entry in frame.winfo_children():
-                        self.imeis.append(entry.get())
+                        if not isinstance(entry,ttk.Label):
+                            self.imeis.append(entry.get())
+
+                    popup.destroy()
+                ttk.Button(scroll_frame,text="Submit",cursor="hand2",style="Module.TButton",command=get_imeis).pack(pady=5)
+
             else:
                 messagebox.showerror("No Quantity","Plese Enter Quantity")
 
