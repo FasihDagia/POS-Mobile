@@ -30,6 +30,7 @@ class database:
         self.db = self.client["mobile_shop"]
         self.stock = self.db["stock"]
         self.credit_accounts= self.db["credit_accounts"]
+        self.credit_accounts_history = self.db["credit_accounts_history"]
         self.sales = self.db["sales"]
         self.auth = self.db["auth"]
     
@@ -129,3 +130,24 @@ class database:
                 s_no,
                 entry
                 ))
+            
+    def load_cr_acc_history(self,row,table):
+        
+        for ro in table.get_children():
+            table.delete(ro)
+
+        filter ={
+            "customer_name":row[4],
+            "customer_cnic":row[5]
+        }
+
+        history = self.credit_accounts_history.find(filter)
+        s_no = 1
+        for entry in history:
+            table.insert("",END,values=(
+                s_no,
+                entry.get("date"),
+                entry.get("amount_paid"),
+                entry.get("balance")
+            )) 
+            s_no+=1

@@ -192,7 +192,7 @@ class windows:
         style.configure("Logout.TButton", font=("Helvetica", 11),borderwidth=4,padding=2)
         
         buttons = ["Stock","Stock Entry","Credit Accounts","Sales","Invoicing"]
-        commmands = [self.stocks_window,self.stock_entry]
+        commmands = [self.stocks_window,self.stock_entry,self.credit_acc]
 
         btn_frame = Frame(self.root)
         btn_frame.pack(pady=5)
@@ -313,7 +313,6 @@ class windows:
 
         ttk.Label(entry_frame,text="IMEI",font=font).grid(row=3,column=2,padx=5,pady=10)
         imei_button = ttk.Button(entry_frame,text="Enter IMEI Nos",cursor="hand2",command=lambda:imei_entry(quantity_entry))
-        IMEI_entry = ttk.Entry(entry_frame,font=font)
         imei_button.grid(row=3,column=3,padx=5,pady=10)
 
         def imei_entry(quantity):
@@ -379,4 +378,81 @@ class windows:
                                                     condition_entry.get(),date_entry.get(),
                                                     int(quantity_entry.get()),purchase_price_entry.get(),
                                                     sell_price_entry.get(),self.imeis)).pack(pady=10)
+
+    def credit_acc(self):
+        
+        destroy_widgets(self.root)
+
+        center_window(self.root,1100,600)
+        self.root.title("Credit Accounts")
+        
+        style = ttk.Style()
+        style.configure("Module.TButton", font=("Helvetica", 11),padding=6,borderwidth=2)
+
+        img = PhotoImage(file="E:/POS Mobile/assets/back.png")
+        smaller_img = img.subsample(30, 30)
+
+        bk_btn = ttk.Button(self.root,image=smaller_img,cursor="hand2",command=self.home_page)
+        bk_btn.image = smaller_img
+        bk_btn.pack(anchor="nw", padx=10, pady=10)
+
+        ttk.Label(self.root,text="Credit Accounts",font=("Helvetica",20,"bold")).pack(pady=5)
+
+        def show_history():
+            row = get_selected(table_cr_acc)
+            if row:
+                popup = Toplevel(self.root)
+                popup.title("Customer Account History")
+                center_window(popup,800,600)
+
+                img = PhotoImage(file="E:/POS Mobile/assets/back.png")
+                smaller_img = img.subsample(30, 30)
+
+                bk_btn = ttk.Button(popup,image=smaller_img,cursor="hand2",command=lambda:popup.destroy())
+                bk_btn.image = smaller_img
+                bk_btn.pack(anchor="nw", padx=10, pady=10)
+
+                ttk.Label(popup,text="Customer Account History",font=("Helvetica",17,"bold")).pack(pady=5)
+                details_frame = Frame(popup)
+                details_frame.pack(pady=10)
+
+                ttk.Label(details_frame,text=f"Customer Name: {row[4]}",font=("Helvetica",12,"bold")).grid(row=0,column=0, padx=7, pady=5)
+                ttk.Label(details_frame,text=f"Customer CNIC: {row[5]}",font=("Helvetica",12,"bold")).grid(row=0,column=1, padx=7, pady=5)
+                ttk.Label(details_frame,text=f"Total Amount Paid: {row[7]}",font=("Helvetica",12,"bold")).grid(row=1,column=0, padx=7, pady=5)
+                ttk.Label(details_frame,text=f"Balance: {row[8]}",font=("Helvetica",12,"bold")).grid(row=1,column=1, padx=7, pady=5)
+
+                table_acc_his_columns =["S.NO", "Date","Amount Paid","Balance"]
+                table_acc_his_widths= [50,100,130,120]
+                table_acc_his = create_treeview(popup, table_acc_his_columns, table_acc_his_widths,18)
+                self.db.load_cr_acc_history(row,table_acc_his)
+
+            else:
+                messagebox.showerror("Input Missing","Please Select a Customer!")
+        
+        btn_frame = Frame(self.root)
+        btn_frame.pack(pady=10)
+
+        ttk.Button(btn_frame,text="Settel Account",style="Module.TButton",cursor="hand2",).grid(padx=7,pady=5,row=0,column=0)
+        ttk.Button(btn_frame,text="Show History",style="Module.TButton",cursor="hand2",command=show_history).grid(padx=7,pady=5,row=0,column=1)
+
+        table_cr_acc_columns =["S.NO", "Date","Model","Next Due Date","Customer Name", "Customer CNIC","Down Payment","Total Amount Paid","Balance"]
+        table_cr_acc_widths= [50,100,120,110,150,130,120,130,120]
+        table_cr_acc = create_treeview(self.root, table_cr_acc_columns, table_cr_acc_widths,18)
+
+        table_cr_acc.insert("", END, values=(
+            1,
+            "11/04/2026",
+            "Redmi Note 14pro",
+            "20/04/2026",
+            "Taha Zafar Kamali",
+            "42101-1234567-9",
+            "35000",
+            "35000",
+            "45000"   
+        ))  
+
+
+
+
+
 
