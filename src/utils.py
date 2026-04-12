@@ -71,3 +71,68 @@ def get_selected(tree):
 
 def grid_label(root,text,col,ro,fsz):
     ttk.Label(root,text=text,font=("Helvetica",fsz,"bold")).grid(column=col,row=ro,padx=5,pady=7)
+    
+
+def grid_create_treeview(parent, columns, widths, height):
+
+    # Main frame (must use grid)
+    frame = ttk.Frame(parent)
+    frame.grid(sticky="nsew",columnspan=6)
+
+    # Make parent expandable
+    parent.grid_rowconfigure(0, weight=1)
+    parent.grid_columnconfigure(0, weight=1)
+
+    # Make frame expandable
+    frame.grid_rowconfigure(0, weight=1)
+
+
+    # Scrollbars
+    tree_scroll_y = ttk.Scrollbar(frame, orient="vertical")
+    tree_scroll_x = ttk.Scrollbar(frame, orient="horizontal")
+
+    # Style
+    style = ttk.Style()
+    style.configure("Treeview", foreground="black", rowheight=20, font=("Helvetica", 9))
+    style.configure("Treeview.Heading", font=("Helvetica", 10, "bold"), rowheight=25)
+
+    # Treeview
+    tree = ttk.Treeview(
+        frame,
+        columns=columns,
+        show="headings",
+        yscrollcommand=tree_scroll_y.set,
+        xscrollcommand=tree_scroll_x.set,
+        height=height
+    )
+
+    # Layout using grid + columnspan=6
+    tree.grid(row=0, column=0, columnspan=6, sticky="nsew", padx=10, pady=10)
+
+    tree_scroll_y.grid(row=0, column=6, sticky="ns", pady=10)
+    tree_scroll_x.grid(row=1, column=0, columnspan=6, sticky="ew", padx=10)
+
+    # Configure scrollbar commands
+    tree_scroll_y.config(command=tree.yview)
+    tree_scroll_x.config(command=tree.xview)
+
+    # Column setup
+    for col, w in zip(columns, widths):
+        tree.heading(col, text=col)
+        tree.column(col, width=w, anchor="center")
+
+    # Row colors
+    tree.tag_configure("oddrow", background="#FFE5B4")
+    tree.tag_configure("evenrow", background="#FFCBA4")
+
+    # Override insert for striped rows
+    original_insert = tree.insert
+
+    def colored_insert(parent_item, index, values=None, **kwargs):
+        row_count = len(tree.get_children())
+        tag = "evenrow" if row_count % 2 == 0 else "oddrow"
+        return original_insert(parent_item, index, values=values, tags=(tag,), **kwargs)
+
+    tree.insert = colored_insert
+
+    return tree

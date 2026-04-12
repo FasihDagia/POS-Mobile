@@ -1,7 +1,7 @@
 from tkinter import ttk,messagebox,Frame,Toplevel,PhotoImage,END,Canvas
 from tkinter import *
 from src.database import database
-from src.utils import center_window,destroy_widgets,create_treeview,get_selected,grid_label
+from src.utils import center_window,destroy_widgets,create_treeview,get_selected,grid_label,grid_create_treeview
 from datetime import date
 
 
@@ -457,11 +457,11 @@ class windows:
         
         destroy_widgets(self.root)
 
-        center_window(self.root, 1100,600)
+        center_window(self.root, 1150,650)
         self.root.title("Invoiceing")
 
         style = ttk.Style()
-        style.configure("Module.TButton", font=("Helvetica", 11),padding=6,borderwidth=2)
+        style.configure("Module.TButton", font=("Helvetica", 11),padding=4,borderwidth=2)
 
         img = PhotoImage(file="E:/POS Mobile/assets/back.png")
         smaller_img = img.subsample(30, 30)
@@ -502,10 +502,21 @@ class windows:
         pay_ty_entry.grid(row=4,column=1,padx=5,pady=10)
         pay_ty_entry.set("Select a type")
 
+        g1 = ttk.Label(right_frame,text=" ",font=("Helvetica",12,"bold"))
+        g2 = ttk.Label(right_frame,text=" ",font=("Helvetica",12,"bold"))
+        g1.grid(row=5,column=0)
+        g2.grid(row=6,column=0)
+
+        grid_label(right_frame," ",0,7,12)
+        grid_label(right_frame," ",0,8,12)
+        grid_label(right_frame," ",0,9,12)
+
+
         dw_pay_label = ttk.Label(right_frame,text="Down Payment",font=("Helvetica",12,"bold"))
         dw_pay_entry = ttk.Entry(right_frame,font=("Helvetica",12,"bold"))
 
         def add_placeholder(entry, text):
+            entry.delete(0, END)
             entry.insert(0, text)
             entry.configure(foreground="grey")
 
@@ -516,18 +527,21 @@ class windows:
 
             def on_focus_out(event):
                 if entry.get() == "":
+                    entry.delete(0, END)
                     entry.insert(0, text)
                     entry.configure(foreground="grey")
 
             entry.bind("<FocusIn>", on_focus_in)
             entry.bind("<FocusOut>", on_focus_out)
-
+        
         nt_du_dt_label = ttk.Label(right_frame,text="Due Date",font=("Helvetica",12,"bold"))
         nt_du_dt_entry = ttk.Entry(right_frame,font=("Helvetica",12,"bold"))
 
         def cr_sale_input(event):
             type = pay_ty_entry.get()
             if type == "Credit Sale":
+                g1.grid_forget()
+                g2.grid_forget()
                 dw_pay_label.grid(row=5,column=0,padx=5,pady=7)
                 dw_pay_entry.grid(row=5,column=1,padx=5)
 
@@ -536,6 +550,9 @@ class windows:
                 nt_du_dt_entry.grid(row=6,column=1,padx=5)
                 add_placeholder(nt_du_dt_entry,text)
             else:
+                g1.grid(row=5,column=0)
+                g2.grid(row=6,column=0)
+
                 dw_pay_label.grid_forget()
                 dw_pay_entry.grid_forget()
 
@@ -543,6 +560,12 @@ class windows:
                 nt_du_dt_entry.grid_forget()
             
         pay_ty_entry.bind("<<ComboboxSelected>>", cr_sale_input)
+
+        total_frame = Frame(right_frame)
+        total_frame.grid(sticky="e",pady=7)
+        grid_label(total_frame,"Total",0,0,17)
+        # ttk.Label(right_frame,text="Total:",font=("Helvetica",17,"bold")).grid(row=10,column=0)
+
 
         def load_data():
             pipeline = [
@@ -644,14 +667,12 @@ class windows:
             condition_entry.set("Select Condition")
             imei_entry.set("Select IMEI NO")
 
-
         def on_storage(event):
             m = model_entry.get()
             s = storage_entry.get()
             condition_entry['values'] = list(model_data[m][s].keys())
             condition_entry.set("Select Condition")
             imei_entry.set("Select IMEI NO")
-
 
         def on_condition(event):
             m = model_entry.get()
@@ -662,10 +683,50 @@ class windows:
             imei_entry['values'] = imeis
             imei_entry.set("Select IMEI NO")
 
+            filter = {
+                "model": m,
+                "storage":s,
+                "condition":c
+            }
+
+            price = (self.db.stock.find_one(filter)).get("sell_price")
+            grid_label(left_frame,price,3,1,12)
 
         model_entry.bind("<<ComboboxSelected>>", on_model)
         storage_entry.bind("<<ComboboxSelected>>", on_storage)
         condition_entry.bind("<<ComboboxSelected>>", on_condition)
+
+        grid_label(left_frame,"Price",2,1,11)
+        grid_label(left_frame,"0.00",3,1,12)
+
+        def add():
+            model = model_entry.get()
+            storage = storage_entry.get()
+            condition = condition_entry.get()
+            imei = imei_entry.get()
+            filter = {
+                "model": model,
+                "storage":storage,
+                "condition":condition
+            }
+            price = (self.db.stock.find_one(filter)).get("sell_price")
+
+            inv_table.insert("",END,values=(
+                len(inv_table.get_children())+1,
+                imei,
+                model,
+                storage,
+                condition,
+                price
+            ))
+
+        ttk.Button(left_frame,text="Add",cursor="hand2",style="Module.TButton",command=add).grid(row=1,column=4,columnspan=2,padx=5)
+        
+        inv_table_columns = ["S.NO","IMEI NO","Model","Storage","Condition","Price"]
+        inv_table_widths = [50,120,120,100,100,120]
+        inv_table = grid_create_treeview(left_frame,inv_table_columns,inv_table_widths,18)
+
+        
 
 
     def sales(self):
