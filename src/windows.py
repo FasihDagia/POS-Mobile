@@ -1,7 +1,8 @@
 from tkinter import ttk,messagebox,Frame,Toplevel,PhotoImage,END,Canvas
 from tkinter import *
 from src.database import database
-from src.utils import center_window,destroy_widgets,create_treeview,get_selected
+from src.utils import center_window,destroy_widgets,create_treeview,get_selected,grid_label
+from datetime import date
 
 
 class windows:
@@ -19,6 +20,7 @@ class windows:
         self.root.title("POS")
 
         ttk.Label(self.root,text="Point of Sale",font=("Helvetica",20,"bold")).pack(padx=50,pady=20)
+        ttk.Label(self.root,text="MH Point",font=("Helvetica",18,"bold")).pack(padx=50,pady=15)
 
         style = ttk.Style()
         style.configure("Log.TButton", font=("Helvetica", 11),padding=6,borderwidth=2)
@@ -191,8 +193,8 @@ class windows:
         style.configure("Module.TButton", font=("Helvetica", 11),borderwidth=4,padding=(4,25))
         style.configure("Logout.TButton", font=("Helvetica", 11),borderwidth=4,padding=2)
         
-        buttons = ["Stock","Stock Entry","Credit Accounts","Sales","Invoicing"]
-        commmands = [self.stocks_window,self.stock_entry,self.credit_acc]
+        buttons = ["Stock","Stock Entry","Credit Accounts","Invoicing","Sales"]
+        commmands = [self.stocks_window,self.stock_entry,self.credit_acc,self.invoicing,self.sales]
 
         btn_frame = Frame(self.root)
         btn_frame.pack(pady=5)
@@ -451,8 +453,220 @@ class windows:
             "45000"   
         ))  
 
+    def invoicing(self):
+        
+        destroy_widgets(self.root)
+
+        center_window(self.root, 1100,600)
+        self.root.title("Invoiceing")
+
+        style = ttk.Style()
+        style.configure("Module.TButton", font=("Helvetica", 11),padding=6,borderwidth=2)
+
+        img = PhotoImage(file="E:/POS Mobile/assets/back.png")
+        smaller_img = img.subsample(30, 30)
+
+        bk_btn = ttk.Button(self.root,image=smaller_img,cursor="hand2",command=self.home_page)
+        bk_btn.image = smaller_img
+        bk_btn.pack(anchor="nw", padx=10, pady=10)
+
+        entry_frame =Frame(self.root)
+        entry_frame.pack(pady=15,padx=10)
+
+        ttk.Label(entry_frame,text="Invoice",font=("Helvetica",20,"bold")).grid(row=0,column=0,columnspan=2,pady=7)
+    
+        right_frame = Frame(entry_frame)
+        right_frame.grid(row=1,column=0,padx=10,sticky="ns")
+
+        left_frame = Frame(entry_frame)
+        left_frame.grid(row=1,column=1,padx=10)
+
+        grid_label(right_frame,"Date:",0,0,12)
+        grid_label(right_frame,f"{date.today()}",1,0,12)
+
+        grid_label(right_frame,"Invoice NO:",0,1,12)
+        inv_no = f"INV{str(self.db.sales.count_documents({}) + 1).zfill(5)}"
+        grid_label(right_frame,inv_no,1,1,12)
+
+        grid_label(right_frame,"Customer Name:",0,2,12)
+        cus_name_entry = ttk.Entry(right_frame,font=("Helvetica",12,"bold"))
+        cus_name_entry.grid(row=2,column=1,padx=5)
+
+        grid_label(right_frame,"Customer CNIC:",0,3,12)
+        cus_cnic_entry = ttk.Entry(right_frame,font=("Helvetica",12,"bold"))
+        cus_cnic_entry.grid(row=3,column=1,padx=5)
+
+        grid_label(right_frame,"Payment Type",0,4,12)
+        types = ["Paid in Full","Credit Sale"]
+        pay_ty_entry = ttk.Combobox(right_frame, values=types)
+        pay_ty_entry.grid(row=4,column=1,padx=5,pady=10)
+        pay_ty_entry.set("Select a type")
+
+        dw_pay_label = ttk.Label(right_frame,text="Down Payment",font=("Helvetica",12,"bold"))
+        dw_pay_entry = ttk.Entry(right_frame,font=("Helvetica",12,"bold"))
+
+        def add_placeholder(entry, text):
+            entry.insert(0, text)
+            entry.configure(foreground="grey")
+
+            def on_focus_in(event):
+                if entry.get() == text:
+                    entry.delete(0, END)
+                    entry.configure(foreground="black")
+
+            def on_focus_out(event):
+                if entry.get() == "":
+                    entry.insert(0, text)
+                    entry.configure(foreground="grey")
+
+            entry.bind("<FocusIn>", on_focus_in)
+            entry.bind("<FocusOut>", on_focus_out)
+
+        nt_du_dt_label = ttk.Label(right_frame,text="Due Date",font=("Helvetica",12,"bold"))
+        nt_du_dt_entry = ttk.Entry(right_frame,font=("Helvetica",12,"bold"))
+
+        def cr_sale_input(event):
+            type = pay_ty_entry.get()
+            if type == "Credit Sale":
+                dw_pay_label.grid(row=5,column=0,padx=5,pady=7)
+                dw_pay_entry.grid(row=5,column=1,padx=5)
+
+                text = "(yyyy-mm-dd)"
+                nt_du_dt_label.grid(row=6,column=0,padx=5,pady=7)
+                nt_du_dt_entry.grid(row=6,column=1,padx=5)
+                add_placeholder(nt_du_dt_entry,text)
+            else:
+                dw_pay_label.grid_forget()
+                dw_pay_entry.grid_forget()
+
+                nt_du_dt_label.grid_forget()
+                nt_du_dt_entry.grid_forget()
+            
+        pay_ty_entry.bind("<<ComboboxSelected>>", cr_sale_input)
+
+        def load_data():
+            pipeline = [
+                {
+                    "$group": {
+                        "_id": {
+                            "model": "$model",
+                            "storage": "$storage",
+                            "condition": "$condition"
+                        },
+                        "imeis": {"$push": "$imei_nos"}
+                    }
+                },
+                {
+                    "$project": {
+                        "_id": 1,
+                        "imeis": {
+                            "$reduce": {
+                                "input": "$imeis",
+                                "initialValue": [],
+                                "in": {
+                                    "$concatArrays": ["$$value", "$$this"]
+                                }
+                            }
+                        }
+                    }
+                },
+                {
+                    "$group": {
+                        "_id": {
+                            "model": "$_id.model",
+                            "storage": "$_id.storage"
+                        },
+                        "conditions": {
+                            "$push": {
+                                "condition": "$_id.condition",
+                                "imeis": "$imeis"
+                            }
+                        }
+                    }
+                },
+                {
+                    "$group": {
+                        "_id": "$_id.model",
+                        "storages": {
+                            "$push": {
+                                "storage": "$_id.storage",
+                                "conditions": "$conditions"
+                            }
+                        }
+                    }
+                },
+                {
+                    "$project": {
+                        "_id": 0,
+                        "model": "$_id",
+                        "storages": 1
+                    }
+                }
+            ]
+
+            data = list(self.db.stock.aggregate(pipeline))
+            return data
+
+        data = load_data()
+
+        model_data = {}
+        for item in data:
+            model_data[item["model"]] = {}
+
+            for s in item["storages"]:
+                storage_name = s["storage"]
+                model_data[item["model"]][storage_name] = {}
+
+                for c in s["conditions"]:
+                    model_data[item["model"]][storage_name][c["condition"]] = c["imeis"]
+                
+        grid_label(left_frame,"Model:",0,0,11)
+        model_entry = ttk.Combobox(left_frame)
+        model_entry['values'] = list(model_data.keys())
+        model_entry.grid(row=0,column=1,padx=5,pady=5)
+
+        grid_label(left_frame,"Storage:",2,0,11)
+        storage_entry = ttk.Combobox(left_frame)
+        storage_entry.grid(row=0,column=3,padx=5,pady=5)
+
+        grid_label(left_frame,"Condition:",4,0,11)
+        condition_entry = ttk.Combobox(left_frame)
+        condition_entry.grid(row=0,column=5,padx=5,pady=5)
+
+        grid_label(left_frame,"IMEI NO:",0,1,11)
+        imei_entry = ttk.Combobox(left_frame)
+        imei_entry.grid(row=1,column=1,padx=5,pady=7)
+
+        def on_model(event):
+            m = model_entry.get()
+            storage_entry['values'] = list(model_data[m].keys())
+            storage_entry.set("Select storage")
+            condition_entry.set("Select Condition")
+            imei_entry.set("Select IMEI NO")
 
 
+        def on_storage(event):
+            m = model_entry.get()
+            s = storage_entry.get()
+            condition_entry['values'] = list(model_data[m][s].keys())
+            condition_entry.set("Select Condition")
+            imei_entry.set("Select IMEI NO")
 
 
+        def on_condition(event):
+            m = model_entry.get()
+            s = storage_entry.get()
+            c = condition_entry.get()
 
+            imeis = model_data[m][s][c]
+            imei_entry['values'] = imeis
+            imei_entry.set("Select IMEI NO")
+
+
+        model_entry.bind("<<ComboboxSelected>>", on_model)
+        storage_entry.bind("<<ComboboxSelected>>", on_storage)
+        condition_entry.bind("<<ComboboxSelected>>", on_condition)
+
+
+    def sales(self):
+        pass

@@ -68,3 +68,6 @@ def get_selected(tree):
 
     row = tree.item(selected_item)["values"]
     return row
+
+def grid_label(root,text,col,ro,fsz):
+    ttk.Label(root,text=text,font=("Helvetica",fsz,"bold")).grid(column=col,row=ro,padx=5,pady=7)
