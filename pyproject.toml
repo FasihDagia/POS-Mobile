@@ -8,5 +8,4 @@ dependencies = [
     "dotenv>=0.9.9",
     "pillow>=12.2.0",
     "pymongo>=4.16.0",
-    "pywin32>=311",
 ]

@@ -138,7 +138,7 @@ def grid_create_treeview(parent, columns, widths, height):
 
     return tree
 
-MAX_WIDTH = 32   # 32 (58mm) or 48 (80mm)
+MAX_WIDTH = 32  
 def center(text):
     return text.center(MAX_WIDTH)
 
