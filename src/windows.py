@@ -462,6 +462,7 @@ class windows:
 
         style = ttk.Style()
         style.configure("Module.TButton", font=("Helvetica", 11),padding=4,borderwidth=2)
+        style.configure("Save.TButton", font=("Helvetica", 11),padding=6,borderwidth=2)
 
         img = PhotoImage(file="E:/POS Mobile/assets/back.png")
         smaller_img = img.subsample(30, 30)
@@ -479,7 +480,7 @@ class windows:
         right_frame.grid(row=1,column=0,padx=10,sticky="ns")
 
         left_frame = Frame(entry_frame)
-        left_frame.grid(row=1,column=1,padx=10)
+        left_frame.grid(row=1,column=1,padx=10,rowspan=2)
 
         grid_label(right_frame,"Date:",0,0,12)
         grid_label(right_frame,f"{date.today()}",1,0,12)
@@ -496,24 +497,17 @@ class windows:
         cus_cnic_entry = ttk.Entry(right_frame,font=("Helvetica",12,"bold"))
         cus_cnic_entry.grid(row=3,column=1,padx=5)
 
-        grid_label(right_frame,"Payment Type",0,4,12)
+        grid_label(right_frame,"Payment Type:",0,4,12)
         types = ["Paid in Full","Credit Sale"]
         pay_ty_entry = ttk.Combobox(right_frame, values=types)
         pay_ty_entry.grid(row=4,column=1,padx=5,pady=10)
         pay_ty_entry.set("Select a type")
 
-        g1 = ttk.Label(right_frame,text=" ",font=("Helvetica",12,"bold"))
-        g2 = ttk.Label(right_frame,text=" ",font=("Helvetica",12,"bold"))
-        g1.grid(row=5,column=0)
-        g2.grid(row=6,column=0)
+        dw_pay_label = ttk.Label(right_frame,text="Down Payment:",font=("Helvetica",12,"bold"),foreground="grey")
+        dw_pay_entry = ttk.Entry(right_frame,font=("Helvetica",12,"bold"),state=["disabled"])
 
-        grid_label(right_frame," ",0,7,12)
-        grid_label(right_frame," ",0,8,12)
-        grid_label(right_frame," ",0,9,12)
-
-
-        dw_pay_label = ttk.Label(right_frame,text="Down Payment",font=("Helvetica",12,"bold"))
-        dw_pay_entry = ttk.Entry(right_frame,font=("Helvetica",12,"bold"))
+        dw_pay_label.grid(row=5,column=0,padx=5,pady=7)
+        dw_pay_entry.grid(row=5,column=1,padx=5)
 
         def add_placeholder(entry, text):
             entry.delete(0, END)
@@ -534,38 +528,44 @@ class windows:
             entry.bind("<FocusIn>", on_focus_in)
             entry.bind("<FocusOut>", on_focus_out)
         
-        nt_du_dt_label = ttk.Label(right_frame,text="Due Date",font=("Helvetica",12,"bold"))
-        nt_du_dt_entry = ttk.Entry(right_frame,font=("Helvetica",12,"bold"))
+        nt_du_dt_label = ttk.Label(right_frame,text="Due Date:",font=("Helvetica",12,"bold"),foreground="grey")
+        nt_du_dt_entry = ttk.Entry(right_frame,font=("Helvetica",12,"bold"),state=["disabled"])
+
+        text = "(yyyy-mm-dd)"
+        nt_du_dt_label.grid(row=6,column=0,padx=5,pady=7)
+        nt_du_dt_entry.grid(row=6,column=1,padx=5)
+        add_placeholder(nt_du_dt_entry,text)
 
         def cr_sale_input(event):
             type = pay_ty_entry.get()
             if type == "Credit Sale":
-                g1.grid_forget()
-                g2.grid_forget()
-                dw_pay_label.grid(row=5,column=0,padx=5,pady=7)
-                dw_pay_entry.grid(row=5,column=1,padx=5)
+                dw_pay_label.configure(foreground="black")
+                dw_pay_entry.configure(state=["!disabled"])
 
-                text = "(yyyy-mm-dd)"
-                nt_du_dt_label.grid(row=6,column=0,padx=5,pady=7)
-                nt_du_dt_entry.grid(row=6,column=1,padx=5)
+                nt_du_dt_label.configure(foreground="black")
+                nt_du_dt_entry.configure(state=["!disabled"])
                 add_placeholder(nt_du_dt_entry,text)
             else:
-                g1.grid(row=5,column=0)
-                g2.grid(row=6,column=0)
+                dw_pay_label.configure(foreground="grey")
+                dw_pay_entry.configure(state=["disabled"])
 
-                dw_pay_label.grid_forget()
-                dw_pay_entry.grid_forget()
-
-                nt_du_dt_label.grid_forget()
-                nt_du_dt_entry.grid_forget()
+                nt_du_dt_label.configure(foreground="grey")
+                nt_du_dt_entry.configure(state=["disabled"])
             
         pay_ty_entry.bind("<<ComboboxSelected>>", cr_sale_input)
 
-        total_frame = Frame(right_frame)
-        total_frame.grid(sticky="e",pady=7)
-        grid_label(total_frame,"Total",0,0,17)
-        # ttk.Label(right_frame,text="Total:",font=("Helvetica",17,"bold")).grid(row=10,column=0)
+        total_frame = Frame(entry_frame)
+        total_frame.grid(pady=7,row=2,column=0)
+        grid_label(total_frame,"Total",0,0,19)
+        total_label = ttk.Label(total_frame,text=0.00,font=("Helvetica",19,"bold"))
+        total_label.grid(row=0,column=1,pady=7)
 
+        def total(pr):
+            total = total_label.cget("text")
+            total = total+float(pr)
+            total_label.configure(text=total)
+
+        ttk.Button(total_frame,text="Save",cursor="hand2",style="Save.TButton").grid(row=1,column=0,columnspan=2,pady=7)
 
         def load_data():
             pipeline = [
@@ -647,32 +647,31 @@ class windows:
         model_entry = ttk.Combobox(left_frame)
         model_entry['values'] = list(model_data.keys())
         model_entry.grid(row=0,column=1,padx=5,pady=5)
+        model_entry.set("Select  Model")
 
         grid_label(left_frame,"Storage:",2,0,11)
         storage_entry = ttk.Combobox(left_frame)
         storage_entry.grid(row=0,column=3,padx=5,pady=5)
+        storage_entry.set("Select Storage")
 
         grid_label(left_frame,"Condition:",4,0,11)
         condition_entry = ttk.Combobox(left_frame)
         condition_entry.grid(row=0,column=5,padx=5,pady=5)
+        condition_entry.set("Select Condition")
 
         grid_label(left_frame,"IMEI NO:",0,1,11)
         imei_entry = ttk.Combobox(left_frame)
         imei_entry.grid(row=1,column=1,padx=5,pady=7)
+        imei_entry.set("Select IMEI NO")
 
         def on_model(event):
             m = model_entry.get()
             storage_entry['values'] = list(model_data[m].keys())
-            storage_entry.set("Select storage")
-            condition_entry.set("Select Condition")
-            imei_entry.set("Select IMEI NO")
 
         def on_storage(event):
             m = model_entry.get()
             s = storage_entry.get()
             condition_entry['values'] = list(model_data[m][s].keys())
-            condition_entry.set("Select Condition")
-            imei_entry.set("Select IMEI NO")
 
         def on_condition(event):
             m = model_entry.get()
@@ -681,7 +680,6 @@ class windows:
 
             imeis = model_data[m][s][c]
             imei_entry['values'] = imeis
-            imei_entry.set("Select IMEI NO")
 
             filter = {
                 "model": m,
@@ -704,22 +702,31 @@ class windows:
             storage = storage_entry.get()
             condition = condition_entry.get()
             imei = imei_entry.get()
-            filter = {
-                "model": model,
-                "storage":storage,
-                "condition":condition
-            }
-            price = (self.db.stock.find_one(filter)).get("sell_price")
+            if model == "Select Model" or storage == "Select Storage" or condition == "Select Condition" or imei == "Select IMEI NO":
+                messagebox.showerror("Missing Fields","Please fill the missing feilds")
+            else:
+                filter = {
+                    "model": model,
+                    "storage":storage,
+                    "condition":condition
+                }
+                price = (self.db.stock.find_one(filter)).get("sell_price")
 
-            inv_table.insert("",END,values=(
-                len(inv_table.get_children())+1,
-                imei,
-                model,
-                storage,
-                condition,
-                price
-            ))
+                inv_table.insert("",END,values=(
+                    len(inv_table.get_children())+1,
+                    imei,
+                    model,
+                    storage,
+                    condition,
+                    price
+                ))
 
+                total(price)
+                model_entry.set("Select Model")
+                storage_entry.set("Select Storage")
+                condition_entry.set("Select Condition")
+                imei_entry.set("Select IMEI NO")
+                
         ttk.Button(left_frame,text="Add",cursor="hand2",style="Module.TButton",command=add).grid(row=1,column=4,columnspan=2,padx=5)
         
         inv_table_columns = ["S.NO","IMEI NO","Model","Storage","Condition","Price"]
