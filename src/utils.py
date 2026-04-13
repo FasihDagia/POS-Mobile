@@ -1,5 +1,7 @@
 import tkinter as tk
 from tkinter import ttk
+import win32print
+from datetime import datetime
 
 def center_window(root,width, height):
     screen_width = root.winfo_screenwidth()
@@ -72,7 +74,6 @@ def get_selected(tree):
 def grid_label(root,text,col,ro,fsz):
     ttk.Label(root,text=text,font=("Helvetica",fsz,"bold")).grid(column=col,row=ro,padx=5,pady=7)
     
-
 def grid_create_treeview(parent, columns, widths, height):
 
     # Main frame (must use grid)
@@ -136,3 +137,79 @@ def grid_create_treeview(parent, columns, widths, height):
     tree.insert = colored_insert
 
     return tree
+
+MAX_WIDTH = 32   # 32 (58mm) or 48 (80mm)
+def center(text):
+    return text.center(MAX_WIDTH)
+
+def line():
+    return "-" * MAX_WIDTH
+
+def left_right(left, right):
+    return left + " " * (MAX_WIDTH - len(left) - len(right)) + right
+
+def format_row(sno, imei, model, price):
+    sno_w = 4
+    imei_w = 10
+    price_w = 8
+    model_w = MAX_WIDTH - sno_w - imei_w - price_w
+
+    imei = str(imei)[:imei_w]
+    model = str(model)[:model_w]
+
+    return f"{sno:<{sno_w}}{imei:<{imei_w}}{model:<{model_w}}{price:>{price_w}}"
+
+def print_invoice(data, invoice_no, payment_type):
+    invoice = ""
+
+    # ===== SHOP HEADER =====
+    invoice += center("MH Point") + "\n"
+    invoice += line() + "\n"
+
+    now = datetime.now()
+    date = now.strftime("%d-%m-%Y")
+    time = now.strftime("%H:%M")
+
+    invoice += left_right("Invoice:", str(invoice_no)) + "\n"
+    invoice += left_right("Date:", date) + "\n"
+    invoice += left_right("Time:", time) + "\n"
+    invoice += left_right("Payment:", payment_type[0]) + "\n"
+    if payment_type[0] == "Credit Sale":
+        invoice += left_right("Down Payment:", payment_type[1]) + "\n"
+        invoice += left_right("Due Date:", payment_type[2]) + "\n"
+
+    invoice += line() + "\n"
+
+    invoice += format_row("No", "IMEI", "Model", "Price") + "\n"
+    invoice += line() + "\n"
+
+    total = 0
+
+    for i, item in enumerate(data, start=1):
+        imei = item["imei"]
+        model = f"{item['model']} {item['storage']} {item['condition']}"
+        price = item["price"]
+
+        total += price
+
+        invoice += format_row(i, imei, model, price) + "\n"
+
+    invoice += line() + "\n"
+    invoice += left_right("TOTAL", str(total)) + "\n"
+    invoice += line() + "\n"
+    invoice += center("Thank You!") + "\n"
+    invoice += center("Visit Again") + "\n\n\n"
+
+    invoice += "\x1d\x56\x00"
+
+    printer_name = win32print.GetDefaultPrinter()
+    handle = win32print.OpenPrinter(printer_name)
+
+    job = win32print.StartDocPrinter(handle, 1, ("Invoice", None, "RAW"))
+    win32print.StartPagePrinter(handle)
+
+    win32print.WritePrinter(handle, invoice.encode("utf-8"))
+
+    win32print.EndPagePrinter(handle)
+    win32print.EndDocPrinter(handle)
+    win32print.ClosePrinter(handle)

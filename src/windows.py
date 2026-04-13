@@ -733,8 +733,5 @@ class windows:
         inv_table_widths = [50,120,120,100,100,120]
         inv_table = grid_create_treeview(left_frame,inv_table_columns,inv_table_widths,18)
 
-        
-
-
     def sales(self):
         pass
