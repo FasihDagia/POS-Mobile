@@ -231,4 +231,7 @@ def print_invoice(data, customer, invoice_info):
     # Auto print
     os.startfile(f"{invoice_info["invoice_no"]}.pdf", "print")
     
-    
+def clear_entries(root):
+    for widget in root.winfo_children():
+        if isinstance(widget, (ttk.Entry)):
+            widget.delete(0, END)

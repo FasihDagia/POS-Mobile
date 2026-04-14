@@ -1,7 +1,7 @@
 from tkinter import ttk,messagebox,Frame,Toplevel,PhotoImage,END,Canvas
 from tkinter import *
 from src.database import database
-from src.utils import center_window,destroy_widgets,create_treeview,get_selected,grid_label,grid_create_treeview,print_invoice
+from src.utils import center_window,destroy_widgets,create_treeview,get_selected,grid_label,grid_create_treeview,print_invoice,clear_entries
 from datetime import date,datetime
 
 
@@ -785,9 +785,9 @@ class windows:
                 "time": now.strftime("%H:%M")
             }
             
-            self.view_invoice(data,customer,invoice_info,profit,balance)
+            self.view_invoice(data,customer,invoice_info,profit,balance,inv_table)
 
-    def view_invoice(self,data, customer, invoice_info,profit,balance):
+    def view_invoice(self,data, customer, invoice_info,profit,balance,inv_table):
 
         win = Toplevel(self.root)
         win.title("Invoice Preview")
@@ -874,8 +874,9 @@ class windows:
         ttk.Button(btn_frame, text="Save & Print",command=lambda:save_print).grid(row=0,column=1,pady=10)
 
         def save_print():
-            self.db.save_invoice(data,customer,invoice_info,profit,balance,win)
+            self.db.save_invoice(data,customer,invoice_info,profit,balance,win,inv_table)
             print_invoice(data,customer,invoice_info)
+
 
     def sales(self):
         pass

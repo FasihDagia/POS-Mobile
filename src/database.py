@@ -4,6 +4,7 @@ from tkinter import messagebox,END
 from pymongo import MongoClient
 from pymongo.errors import PyMongoError
 import hashlib
+from tkinter import ttk
 from dotenv import load_dotenv
 
 class database:
@@ -152,7 +153,7 @@ class database:
             )) 
             s_no+=1
 
-    def save_invoice(self,data,customer,invoice_info,profit,balance,root):
+    def save_invoice(self,data,customer,invoice_info,profit,balance,root,tree):
 
         details = {
             "invoice_no":invoice_info["invoice_no"],
@@ -217,4 +218,8 @@ class database:
             
         
         messagebox.showinfo("Success","Invoice Saved successfuly!")
+        for widget in root.winfo_children():
+            if isinstance(widget, (ttk.Entry)):
+                widget.delete(0, END)
+        tree.delete(*tree.get_children())
         root.destroy()
