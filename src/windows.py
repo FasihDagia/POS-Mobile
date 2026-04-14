@@ -501,7 +501,7 @@ class windows:
         types = ["Paid in Full","Credit Sale"]
         pay_ty_entry = ttk.Combobox(right_frame, values=types)
         pay_ty_entry.grid(row=4,column=1,padx=5,pady=10)
-        pay_ty_entry.set("Select a type")
+        pay_ty_entry.set("Select type")
 
         dw_pay_label = ttk.Label(right_frame,text="Down Payment:",font=("Helvetica",12,"bold"),foreground="grey")
         dw_pay_entry = ttk.Entry(right_frame,font=("Helvetica",12,"bold"),state=["disabled"])
@@ -734,6 +734,14 @@ class windows:
         inv_table = grid_create_treeview(left_frame,inv_table_columns,inv_table_widths,18)
 
         def save():
+            if not cus_name_entry.get() or not cus_cnic_entry.get() or pay_ty_entry.get() == "Select type":
+                messagebox.showerror("Missing Feilds","Please fill all the fields")
+                return
+            if pay_ty_entry.get() == "Credit Sale":
+                if not dw_pay_entry.get() or nt_du_dt_entry.get() == "(yyyy-mm-dd)":
+                    messagebox.showerror("Missing Feilds","Please fill all the fields")
+                    return
+            
             data = []
             profit = 0
             try:
@@ -775,6 +783,7 @@ class windows:
                 "time": now.strftime("%H:%M")
             }
             
+            self.db.save_invoice(data,customer,invoice_info,profit)
             view_invoice(self.root,data,customer,invoice_info)
 
     def sales(self):
