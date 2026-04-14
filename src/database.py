@@ -178,6 +178,7 @@ class database:
             "down_payment":customer["down_payment"],
             "due_date": customer["due_date"],
             "purchased_items": data,
+            "total_amount_paid":customer["down_payment"],
             "balance": balance
         }
 
@@ -208,7 +209,7 @@ class database:
 
             acc_find = self.credit_accounts.find_one(filter)
             if acc_find:
-                self.credit_accounts.update_one({filter},{"#set":{"down_paymet":int(acc_find["down_payment"])+int(customer["down_payment"]),
+                self.credit_accounts.update_one(filter,{"#set":{"down_paymet":int(acc_find["down_payment"])+int(customer["down_payment"]),
                                                                   "total_amount_paid":int(acc_find["total_amount_paid"])+int(customer["down_payment"]),
                                                                   "balance":int(acc_find["balance"])+balance,
                                                                   "due_date":customer["due_date"]}})

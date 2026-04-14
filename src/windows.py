@@ -870,7 +870,7 @@ class windows:
         btn_frame = Frame(main)
         btn_frame.pack(pady=10)
 
-        ttk.Button(btn_frame, text="Save",command=lambda: self.db.save_invoice(data,customer,invoice_info,profit,balance)).grid(row=0,column=0,pady=10)
+        ttk.Button(btn_frame, text="Save",command=lambda: self.db.save_invoice(data,customer,invoice_info,profit,balance,win,inv_table)).grid(row=0,column=0,pady=10)
         ttk.Button(btn_frame, text="Save & Print",command=lambda:save_print).grid(row=0,column=1,pady=10)
 
         def save_print():
