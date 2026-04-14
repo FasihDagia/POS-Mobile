@@ -1,8 +1,8 @@
 from tkinter import ttk,messagebox,Frame,Toplevel,PhotoImage,END,Canvas
 from tkinter import *
 from src.database import database
-from src.utils import center_window,destroy_widgets,create_treeview,get_selected,grid_label,grid_create_treeview
-from datetime import date
+from src.utils import center_window,destroy_widgets,create_treeview,get_selected,grid_label,grid_create_treeview,print_invoice,view_invoice
+from datetime import date,datetime
 
 
 class windows:
@@ -565,7 +565,7 @@ class windows:
             total = total+float(pr)
             total_label.configure(text=total)
 
-        ttk.Button(total_frame,text="Save",cursor="hand2",style="Save.TButton").grid(row=1,column=0,columnspan=2,pady=7)
+        ttk.Button(total_frame,text="Save",cursor="hand2",style="Save.TButton",command=lambda:save()).grid(row=1,column=0,columnspan=2,pady=7)
 
         def load_data():
             pipeline = [
@@ -732,6 +732,38 @@ class windows:
         inv_table_columns = ["S.NO","IMEI NO","Model","Storage","Condition","Price"]
         inv_table_widths = [50,120,120,100,100,120]
         inv_table = grid_create_treeview(left_frame,inv_table_columns,inv_table_widths,18)
+
+        def save():
+            data = []
+            try:
+                for entry in inv_table.get_children():
+                    values = inv_table.item(entry)["values"]
+
+                    row = {
+                        "imei": values[1],
+                        "model": values[2],
+                        "storage": values[3],
+                        "condition": values[4],
+                        "price": values[5]
+                    }
+                    data.append(row)
+                customer = {
+                    "name" : cus_name_entry.get(),
+                    "cnic": cus_cnic_entry.get(),
+                    "payment_type": pay_ty_entry.get(),
+                    "down_payment": dw_pay_entry.get() or "Nill",
+                    "due_date": nt_du_dt_entry.get() or "Nill"
+                }
+            except:
+                messagebox.showerror("Error", "An error occoured")
+            now = datetime.now()
+            invoice_info = {
+                "invoice_no": inv_no,
+                "date": now.strftime("%d-%m-%Y"),
+                "time": now.strftime("%H:%M")
+            }
+            # print_invoice(data,customer,invoice_info)
+            view_invoice(self.root,data,customer,invoice_info)
 
     def sales(self):
         pass

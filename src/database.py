@@ -151,3 +151,6 @@ class database:
                 entry.get("balance")
             )) 
             s_no+=1
+
+    def save_invoice(self,):
+        pass

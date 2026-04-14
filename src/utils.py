@@ -1,7 +1,12 @@
-import tkinter as tk
+from tkinter import *
 from tkinter import ttk
-import win32print
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+from reportlab.lib import colors
+from reportlab.lib.pagesizes import A4
+from reportlab.lib.styles import getSampleStyleSheet
+from reportlab.lib.styles import ParagraphStyle
 from datetime import datetime
+import os
 
 def center_window(root,width, height):
     screen_width = root.winfo_screenwidth()
@@ -138,78 +143,171 @@ def grid_create_treeview(parent, columns, widths, height):
 
     return tree
 
-MAX_WIDTH = 32  
-def center(text):
-    return text.center(MAX_WIDTH)
+def print_invoice(data, customer, invoice_info):
 
-def line():
-    return "-" * MAX_WIDTH
+    doc = SimpleDocTemplate(f"{invoice_info["invoice_no"]}.pdf", pagesize=A4)
+    styles = getSampleStyleSheet()
+    center_style = ParagraphStyle(
+    name="Center",
+    parent=styles["Normal"],
+    alignment=1   # 0=left, 1=center, 2=right
+)
+    content = []
+    # ================= COMPANY HEADER =================
+    content.append(Paragraph("<b>MH POINT</b>", styles["Title"]))
+    content.append(Paragraph("<b>The Name of Trust</b>", styles["Title"]))
+    content.append(Paragraph("Shop # 42, Street # 11, Block-B, Baldia Complex, Mirpurkhas", center_style))
+    content.append(Paragraph("Phone: 0336-0601994", center_style))
+    content.append(Spacer(1, 20))
 
-def left_right(left, right):
-    return left + " " * (MAX_WIDTH - len(left) - len(right)) + right
+    # ================= CUSTOMER + INVOICE SECTION =================
+    left_data = [
+        ["Customer Name:", customer["name"]],
+        ["CNIC:", customer["cnic"]],
+    ]
 
-def format_row(sno, imei, model, price):
-    sno_w = 4
-    imei_w = 10
-    price_w = 8
-    model_w = MAX_WIDTH - sno_w - imei_w - price_w
+    # Add credit details if needed
+    if customer["payment_type"].lower() == "credit sale":
+        left_data.append(["Down Payment:", str(customer["down_payment"])])
+        left_data.append(["Due Date:", customer["due_date"]])
 
-    imei = str(imei)[:imei_w]
-    model = str(model)[:model_w]
+    right_data = [
+        ["Invoice No:", invoice_info["invoice_no"]],
+        ["Date:", invoice_info["date"]],
+        ["Time:", invoice_info["time"]],
+        ["Payment:", customer["payment_type"]],
+    ]
 
-    return f"{sno:<{sno_w}}{imei:<{imei_w}}{model:<{model_w}}{price:>{price_w}}"
+    table_data = [
+        [Table(left_data), Table(right_data)]
+    ]
 
-def print_invoice(data, invoice_no, payment_type):
-    invoice = ""
+    table = Table(table_data, colWidths=[270, 270])
+    content.append(table)
+    content.append(Spacer(1, 20))
 
-    # ===== SHOP HEADER =====
-    invoice += center("MH Point") + "\n"
-    invoice += line() + "\n"
-
-    now = datetime.now()
-    date = now.strftime("%d-%m-%Y")
-    time = now.strftime("%H:%M")
-
-    invoice += left_right("Invoice:", str(invoice_no)) + "\n"
-    invoice += left_right("Date:", date) + "\n"
-    invoice += left_right("Time:", time) + "\n"
-    invoice += left_right("Payment:", payment_type[0]) + "\n"
-    if payment_type[0] == "Credit Sale":
-        invoice += left_right("Down Payment:", payment_type[1]) + "\n"
-        invoice += left_right("Due Date:", payment_type[2]) + "\n"
-
-    invoice += line() + "\n"
-
-    invoice += format_row("No", "IMEI", "Model", "Price") + "\n"
-    invoice += line() + "\n"
+    # ================= PRODUCTS TABLE =================
+    table_data = [["S.No", "Description", "Amount"]]
 
     total = 0
 
     for i, item in enumerate(data, start=1):
-        imei = item["imei"]
-        model = f"{item['model']} {item['storage']} {item['condition']}"
-        price = item["price"]
+        desc = f"{item['model']} {item['storage']} {item['condition']} (IMEI: {item['imei']})"
+        amount = item["price"]
 
-        total += price
+        total += amount
 
-        invoice += format_row(i, imei, model, price) + "\n"
+        table_data.append([i, desc, amount])
 
-    invoice += line() + "\n"
-    invoice += left_right("TOTAL", str(total)) + "\n"
-    invoice += line() + "\n"
-    invoice += center("Thank You!") + "\n"
-    invoice += center("Visit Again") + "\n\n\n"
+    # Add total row
+    table_data.append(["", "TOTAL", total])
 
-    invoice += "\x1d\x56\x00"
+    product_table = Table(table_data, colWidths=[50, 350, 100])
 
-    printer_name = win32print.GetDefaultPrinter()
-    handle = win32print.OpenPrinter(printer_name)
+    product_table.setStyle(TableStyle([
+        ("GRID", (0,0), (-1,-1), 1, colors.black),
+        ("BACKGROUND", (0,0), (-1,0), colors.lightgrey),
+        ("ALIGN", (2,1), (-1,-1), "RIGHT"),
+        ("FONTNAME", (0,0), (-1,0), "Helvetica-Bold"),
+    ]))
 
-    job = win32print.StartDocPrinter(handle, 1, ("Invoice", None, "RAW"))
-    win32print.StartPagePrinter(handle)
+    content.append(product_table)
+    content.append(Spacer(1, 30))
 
-    win32print.WritePrinter(handle, invoice.encode("utf-8"))
+    # ================= FOOTER =================
+    content.append(Paragraph("Terms & Conditions:", styles["Heading3"]))
+    content.append(Paragraph("Goods once sold are not returnable.", styles["Normal"]))
+    content.append(Paragraph("No warranty of panel on used phones", styles["Normal"]))
+    content.append(Paragraph("3 Days checking warranty on used phones", styles["Normal"]))
+    content.append(Paragraph("The warranty on the box pack phones is provided by the company, The shop owner will not be responsible", styles["Normal"]))
+     
+    content.append(Spacer(1, 50))
 
-    win32print.EndPagePrinter(handle)
-    win32print.EndDocPrinter(handle)
-    win32print.ClosePrinter(handle)
+    content.append(Paragraph("Signature: ____________________", styles["Normal"]))
+
+    # ================= BUILD =================
+    doc.build(content)
+
+    # Auto print
+    os.startfile(f"{invoice_info["invoice_no"]}.pdf", "print")
+    
+def view_invoice(root, data, customer, invoice_info):
+
+    win = Toplevel(root)
+    win.title("Invoice Preview")
+    win.geometry("600x700")
+    win.configure(bg="white")
+
+    main = Frame(win, bg="white")
+    main.pack(fill="both", expand=True, padx=15, pady=15)
+
+    # ================= COMPANY HEADER =================
+    ttk.Label(main, text="MH POINT", font=("Helvetica", 20, "bold"), background="white").pack()
+    ttk.Label(main, text="The Name of Trust", font=("Helvetica", 14, "bold"), background="white").pack()
+
+    ttk.Label(main,
+          text="Shop # 42, Street # 11, Block-B, Baldia Complex, Mirpurkhas",background="white",font=("Helvetica",12)).pack()
+
+    Label(main, text="Phone: 0336-0601994", background="white",font=("Helvetica",12)).pack()
+
+    ttk.Separator(main).pack(fill="x", pady=10)
+
+    # ================= CUSTOMER + INVOICE =================
+    info_frame = Frame(main, bg="white")
+    info_frame.pack(fill="x")
+
+    left = Frame(info_frame, bg="white")
+    left.pack(side="left", fill="both", expand=True)
+
+    right = Frame(info_frame, bg="white")
+    right.pack(side="right", fill="both", expand=True)
+
+    ttk.Label(left, text=f"Customer: {customer['name']}", background="white",font=("Helvetica",10)).pack(anchor="center")
+    ttk.Label(left, text=f"CNIC: {customer['cnic']}", background="white",font=("Helvetica",10)).pack(anchor="center")
+
+    if customer["payment_type"].lower() == "credit sale":
+        ttk.Label(left, text=f"Down Payment: {customer['down_payment']}", background="white",font=("Helvetica",10)).pack(anchor="center")
+        ttk.Label(left, text=f"Due Date: {customer['due_date']}", background="white",font=("Helvetica",10)).pack(anchor="center")
+
+    ttk.Label(right, text=f"Invoice No: {invoice_info['invoice_no']}", background="white",font=("Helvetica",10)).pack(anchor="center")
+    ttk.Label(right, text=f"Date: {invoice_info['date']}", background="white",font=("Helvetica",10)).pack(anchor="center")
+    ttk.Label(right, text=f"Time: {invoice_info['time']}", background="white",font=("Helvetica",10)).pack(anchor="center")
+    ttk.Label(right, text=f"Payment: {customer['payment_type']}", background="white",font=("Helvetica",10)).pack(anchor="center")
+
+    ttk.Separator(main).pack(fill="x", pady=10)
+
+    # ================= PRODUCT TABLE =================
+    table_frame = Frame(main, bg="white")
+    table_frame.pack(fill="both", expand=True)
+
+    tree_columns = ["S.No", "Description", "Amount"]
+    tree_columns_width = [50,300,200]
+    tree = create_treeview(table_frame,tree_columns,tree_columns_width,5)
+
+    total = 0
+
+    for i, item in enumerate(data, start=1):
+        desc = f"{item['model']} {item['storage']} {item['condition']} (IMEI: {item['imei']})"
+        amount = float(item["price"])
+
+        total += amount
+        tree.insert("", "end", values=(i, desc, amount))
+
+    tree.insert("", "end", values=("", "TOTAL", total))
+
+    tree.pack(fill="both", expand=True)
+
+    ttk.Separator(main).pack(fill="x", pady=10)
+
+    # ================= FOOTER =================
+    ttk.Label(main, text="Terms & Conditions", font=("Helvetica", 12, "bold"), background="white").pack(anchor="w")
+
+    ttk.Label(main, text="• Goods once sold are not returnable.", background="white",font=("Helvetica",10)).pack(anchor="w")
+    ttk.Label(main, text="• No warranty of panel on used phones", background="white",font=("Helvetica",10)).pack(anchor="w")
+    ttk.Label(main, text="• 3 Days checking warranty on used phones", background="white",font=("Helvetica",10)).pack(anchor="w")
+    ttk.Label(main, text="• The warranty on the box pack phones is provided by the company, The shop owner will not be responsible", background="white",font=("Helvetica",10)).pack(anchor="w")
+
+    ttk.Label(main, text="Signature: ____________________", background="white").pack(pady=20, anchor="center")
+
+    # ================= PRINT BUTTON (OPTIONAL) =================
+    ttk.Button(main, text="Print",command=lambda: print_invoice(data,customer,invoice_info)).pack(pady=10)
