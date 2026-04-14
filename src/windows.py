@@ -1,7 +1,7 @@
 from tkinter import ttk,messagebox,Frame,Toplevel,PhotoImage,END,Canvas
 from tkinter import *
 from src.database import database
-from src.utils import center_window,destroy_widgets,create_treeview,get_selected,grid_label,grid_create_treeview,print_invoice,view_invoice
+from src.utils import center_window,destroy_widgets,create_treeview,get_selected,grid_label,grid_create_treeview,view_invoice
 from datetime import date,datetime
 
 
@@ -735,6 +735,7 @@ class windows:
 
         def save():
             data = []
+            profit = 0
             try:
                 for entry in inv_table.get_children():
                     values = inv_table.item(entry)["values"]
@@ -747,6 +748,16 @@ class windows:
                         "price": values[5]
                     }
                     data.append(row)
+
+                    #profit calculator
+                    filter = {
+                        "model":values[2],
+                        "storage":values[3],
+                        "condition":values[4]
+                    }
+                    stock_find = self.db.stock.find_one(filter)
+                    profit += (stock_find.get("sell_price")-stock_find.get("purchase_price"))
+                
                 customer = {
                     "name" : cus_name_entry.get(),
                     "cnic": cus_cnic_entry.get(),
@@ -756,13 +767,14 @@ class windows:
                 }
             except:
                 messagebox.showerror("Error", "An error occoured")
+            
             now = datetime.now()
             invoice_info = {
                 "invoice_no": inv_no,
                 "date": now.strftime("%d-%m-%Y"),
                 "time": now.strftime("%H:%M")
             }
-            # print_invoice(data,customer,invoice_info)
+            
             view_invoice(self.root,data,customer,invoice_info)
 
     def sales(self):

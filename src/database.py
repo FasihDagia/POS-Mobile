@@ -152,5 +152,35 @@ class database:
             )) 
             s_no+=1
 
-    def save_invoice(self,):
-        pass
+    def save_invoice(self,data,customer,invoice_info,profit):
+
+        details = {
+            "invoice_no":invoice_info["invoice_no"],
+            "inv_date": invoice_info["date"],
+            "inv_time":invoice_info["time"],
+            "customer_name":customer["name"],
+            "customer_cnic":customer["cnic"],
+            "payment_type": customer["payment_type"],
+            "down_payment":customer["down_payment"],
+            "due_date": customer["due_date"],
+            "purchased_items": data,
+            "profit":profit
+        }
+
+        details_cr = {
+            "invoice_no":invoice_info["invoice_no"],
+            "inv_date": invoice_info["date"],
+            "inv_time":invoice_info["time"],
+            "customer_name":customer["name"],
+            "customer_cnic":customer["cnic"],
+            "payment_type": customer["payment_type"],
+            "down_payment":customer["down_payment"],
+            "due_date": customer["due_date"],
+            "purchased_items": data
+        }
+
+        self.sales.insert_one(details)
+
+        if customer["payment_type"] == "Credit Sale":
+            self.credit_accounts_history.insert_one(details_cr)
+            self.credit_accounts.insert_one(details_cr) 
