@@ -152,7 +152,7 @@ class database:
             )) 
             s_no+=1
 
-    def save_invoice(self,data,customer,invoice_info,profit):
+    def save_invoice(self,data,customer,invoice_info,profit,balance,root):
 
         details = {
             "invoice_no":invoice_info["invoice_no"],
@@ -176,11 +176,45 @@ class database:
             "payment_type": customer["payment_type"],
             "down_payment":customer["down_payment"],
             "due_date": customer["due_date"],
-            "purchased_items": data
+            "purchased_items": data,
+            "balance": balance
         }
+
+        for items in data:
+            filter1 ={
+                "model":items["model"],
+                "storage":items["storage"],
+                "condition":items["condition"]
+            }
+            stck_find = self.stock.find_one(filter1)
+            quan = stck_find.get("quantity") - 1
+            imeis = stck_find.get("imei_nos")
+            imeis.remove(items["imei"])
+            if quan == 0:
+                self.stock.delete_one(filter1)
+            else:
+                self.stock.update_one(filter1,{"$set":{"quantity":quan,"imei_nos":imeis}})
 
         self.sales.insert_one(details)
 
         if customer["payment_type"] == "Credit Sale":
             self.credit_accounts_history.insert_one(details_cr)
-            self.credit_accounts.insert_one(details_cr) 
+
+            filter = {
+                "customer_name":customer["name"],
+                "customer_cnic":customer["cnic"]
+            }
+
+            acc_find = self.credit_accounts.find_one(filter)
+            if acc_find:
+                self.credit_accounts.update_one({filter},{"#set":{"down_paymet":int(acc_find["down_payment"])+int(customer["down_payment"]),
+                                                                  "total_amount_paid":int(acc_find["total_amount_paid"])+int(customer["down_payment"]),
+                                                                  "balance":int(acc_find["balance"])+balance,
+                                                                  "due_date":customer["due_date"]}})
+            else:
+                self.credit_accounts.insert_one(details_cr) 
+
+            
+        
+        messagebox.showinfo("Success","Invoice Saved successfuly!")
+        root.destroy()
