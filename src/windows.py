@@ -487,7 +487,8 @@ class windows:
 
         grid_label(right_frame,"Invoice NO:",0,1,12)
         inv_no = f"INV{str(self.db.sales.count_documents({}) + 1).zfill(5)}"
-        grid_label(right_frame,inv_no,1,1,12)
+        inv_no_label = ttk.Label(right_frame,text=inv_no,font=("Helvetica",12,"bold"))
+        inv_no_label.grid(column=1,row=1,padx=5,pady=7)
 
         grid_label(right_frame,"Customer Name:",0,2,12)
         cus_name_entry = ttk.Entry(right_frame,font=("Helvetica",12,"bold"))
@@ -688,14 +689,16 @@ class windows:
             }
 
             price = (self.db.stock.find_one(filter)).get("sell_price")
-            grid_label(left_frame,price,3,1,12)
+            total_label_in.configure(text=price)
 
         model_entry.bind("<<ComboboxSelected>>", on_model)
         storage_entry.bind("<<ComboboxSelected>>", on_storage)
         condition_entry.bind("<<ComboboxSelected>>", on_condition)
 
         grid_label(left_frame,"Price",2,1,11)
-        grid_label(left_frame,"0.00",3,1,12)
+        total_label_in = ttk.Label(left_frame,text=0.00,font=("Helvetica",12,"bold"))
+        total_label_in.grid(column=3,row=1,padx=5,pady=7)
+        
 
         def add():
             model = model_entry.get()
@@ -745,49 +748,59 @@ class windows:
             data = []
             profit = 0
             balance = 0
-            try:
-                for entry in inv_table.get_children():
-                    values = inv_table.item(entry)["values"]
+            
+            if pay_ty_entry.get() == "Credit Sale":
+                dw_pay = dw_pay_entry.get()
+                nt_du_dt = nt_du_dt_entry.get()
+            else:
+                dw_pay = 0
+                nt_du_dt = "Nill"
 
-                    row = {
-                        "imei": str(values[1]),
-                        "model": values[2],
-                        "storage": values[3],
-                        "condition": values[4],
-                        "price": values[5]
-                    }
-                    data.append(row)
+            for entry in inv_table.get_children():
+                values = inv_table.item(entry)["values"]
+
+                row = {
+                    "imei": str(values[1]),
+                    "model": values[2],
+                    "storage": values[3],
+                    "condition": values[4],
+                    "price": values[5]
+                }
+                data.append(row)
 
                     #profit calculator
-                    filter = {
-                        "model":values[2],
-                        "storage":values[3],
-                        "condition":values[4]
-                    }
-                    stock_find = self.db.stock.find_one(filter)
-                    profit += (int(stock_find.get("sell_price"))-int(stock_find.get("purchase_price")))
-                    balance += (int(stock_find.get("sell_price"))-int(dw_pay_entry.get()) or 0)
-                
-                customer = {
-                    "name" : cus_name_entry.get(),
-                    "cnic": cus_cnic_entry.get(),
-                    "payment_type": pay_ty_entry.get(),
-                    "down_payment": dw_pay_entry.get() or "Nill",
-                    "due_date": nt_du_dt_entry.get() or "Nill"
+                filter = {
+                    "model":values[2],
+                    "storage":values[3],
+                    "condition":values[4]
                 }
-            except:
-                messagebox.showerror("Error", "An error occoured")
+                stock_find = self.db.stock.find_one(filter)
+                profit += (int(stock_find.get("sell_price"))-int(stock_find.get("purchase_price")))
+                balance += (int(stock_find.get("sell_price"))-int(dw_pay))
+                
+
+            customer = {
+                "name" : cus_name_entry.get(),
+                "cnic": cus_cnic_entry.get(),
+                "payment_type": pay_ty_entry.get(),
+                "down_payment": dw_pay,
+                "due_date": nt_du_dt,
+                "balance": balance
+            }
+
             
             now = datetime.now()
             invoice_info = {
                 "invoice_no": inv_no,
                 "date": now.strftime("%d-%m-%Y"),
-                "time": now.strftime("%H:%M")
+                "time": now.strftime("%H:%M"),
+                "profit": profit,
+                "total_inv_amount":int(total_label.cget("text"))
             }
             
-            self.view_invoice(data,customer,invoice_info,profit,balance,inv_table)
+            self.view_invoice(data,customer,invoice_info,inv_table,total_label,right_frame,inv_no_label,total_label_in)
 
-    def view_invoice(self,data, customer, invoice_info,profit,balance,inv_table):
+    def view_invoice(self,data, customer, invoice_info,inv_table,total_label,frame,inv_no_label,total_label_in):
 
         win = Toplevel(self.root)
         win.title("Invoice Preview")
@@ -870,11 +883,11 @@ class windows:
         btn_frame = Frame(main)
         btn_frame.pack(pady=10)
 
-        ttk.Button(btn_frame, text="Save",command=lambda: self.db.save_invoice(data,customer,invoice_info,profit,balance,win,inv_table)).grid(row=0,column=0,pady=10)
+        ttk.Button(btn_frame, text="Save",command=lambda: self.db.save_invoice(data,customer,invoice_info,frame,inv_table,total_label,win,inv_no_label,total_label_in)).grid(row=0,column=0,pady=10)
         ttk.Button(btn_frame, text="Save & Print",command=lambda:save_print).grid(row=0,column=1,pady=10)
 
         def save_print():
-            self.db.save_invoice(data,customer,invoice_info,profit,balance,win,inv_table)
+            self.db.save_invoice(data,customer,invoice_info,frame,inv_table,total_label,win,inv_no_label,total_label_in)
             print_invoice(data,customer,invoice_info)
 
 

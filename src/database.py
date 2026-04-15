@@ -5,6 +5,7 @@ from pymongo import MongoClient
 from pymongo.errors import PyMongoError
 import hashlib
 from tkinter import ttk
+from tkinter import *
 from dotenv import load_dotenv
 
 class database:
@@ -153,7 +154,7 @@ class database:
             )) 
             s_no+=1
 
-    def save_invoice(self,data,customer,invoice_info,profit,balance,root,tree):
+    def save_invoice(self,data,customer,invoice_info,frame,treeview,total_label,win,inv_no_label,total_label_in):
 
         details = {
             "invoice_no":invoice_info["invoice_no"],
@@ -165,7 +166,9 @@ class database:
             "down_payment":customer["down_payment"],
             "due_date": customer["due_date"],
             "purchased_items": data,
-            "profit":profit
+            "total_inv_amount":invoice_info["total_inv_amount"],
+            "profit":invoice_info["profit"]
+
         }
 
         details_cr = {
@@ -179,7 +182,7 @@ class database:
             "due_date": customer["due_date"],
             "purchased_items": data,
             "total_amount_paid":customer["down_payment"],
-            "balance": balance
+            "balance": customer["balance"]
         }
 
         for items in data:
@@ -209,9 +212,9 @@ class database:
 
             acc_find = self.credit_accounts.find_one(filter)
             if acc_find:
-                self.credit_accounts.update_one(filter,{"#set":{"down_paymet":int(acc_find["down_payment"])+int(customer["down_payment"]),
+                self.credit_accounts.update_one(filter,{"$set":{"down_payment":int(acc_find["down_payment"])+int(customer["down_payment"]),
                                                                   "total_amount_paid":int(acc_find["total_amount_paid"])+int(customer["down_payment"]),
-                                                                  "balance":int(acc_find["balance"])+balance,
+                                                                  "balance":int(acc_find["balance"])+customer["balance"],
                                                                   "due_date":customer["due_date"]}})
             else:
                 self.credit_accounts.insert_one(details_cr) 
@@ -219,8 +222,19 @@ class database:
             
         
         messagebox.showinfo("Success","Invoice Saved successfuly!")
-        for widget in root.winfo_children():
-            if isinstance(widget, (ttk.Entry)):
-                widget.delete(0, END)
-        tree.delete(*tree.get_children())
-        root.destroy()
+        
+        #resetting entries
+        for widget in frame.winfo_children():
+            if isinstance(widget, (Entry, ttk.Entry)):
+                widget.delete(0, 'end')
+        
+        for row in treeview.get_children():
+            treeview.delete(row)
+        
+        inv_no = f"INV{str(self.sales.count_documents({}) + 1).zfill(5)}"
+        inv_no_label.configure(text=inv_no)
+        
+        total_label.configure(text=0.00)
+        total_label_in.configure(text=0.00)
+        
+        win.destroy()
