@@ -437,8 +437,8 @@ class windows:
         ttk.Button(btn_frame,text="Settel Account",style="Module.TButton",cursor="hand2",).grid(padx=7,pady=5,row=0,column=0)
         ttk.Button(btn_frame,text="Show History",style="Module.TButton",cursor="hand2",command=show_history).grid(padx=7,pady=5,row=0,column=1)
 
-        table_cr_acc_columns =["S.NO", "Date","Model","Next Due Date","Customer Name", "Customer CNIC","Down Payment","Total Amount Paid","Balance"]
-        table_cr_acc_widths= [50,100,120,110,150,130,120,130,120]
+        table_cr_acc_columns =["S.NO", "Date","Next Due Date","Customer Name", "Customer CNIC","Down Payment","Total Amount Paid","Balance"]
+        table_cr_acc_widths= [50,100,110,150,130,120,130,120]
         table_cr_acc = create_treeview(self.root, table_cr_acc_columns, table_cr_acc_widths,18)
 
         table_cr_acc.insert("", END, values=(
@@ -483,7 +483,8 @@ class windows:
         left_frame.grid(row=1,column=1,padx=10,rowspan=2)
 
         grid_label(right_frame,"Date:",0,0,12)
-        grid_label(right_frame,f"{date.today()}",1,0,12)
+        now = datetime.now()
+        grid_label(right_frame,f"{now.strftime("%Y-%m-%d")}",1,0,12)
 
         grid_label(right_frame,"Invoice NO:",0,1,12)
         inv_no = f"INV{str(self.db.sales.count_documents({}) + 1).zfill(5)}"
@@ -792,7 +793,7 @@ class windows:
             now = datetime.now()
             invoice_info = {
                 "invoice_no": inv_no_label.cget("text"),
-                "date": now.strftime("%d-%m-%Y"),
+                "date": now.strftime("%Y-%m-%d"),
                 "time": now.strftime("%H:%M"),
                 "profit": profit,
                 "total_inv_amount":int(total_label.cget("text"))

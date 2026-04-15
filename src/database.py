@@ -238,3 +238,24 @@ class database:
         total_label_in.configure(text=0.00)
         
         win.destroy()
+
+    def load_credit_acc(self,table):
+        
+        for row in table.get_children():
+            table.delete(row)
+
+        entries = self.credit_accounts.find()
+
+        s_no =1
+        for entry in entries:
+            table.insert("", END,values=(
+                s_no,
+                entry.get("inv_date"),
+                entry.get("due_date"),
+                entry.get("customer_name"),
+                entry.get("customer_cnic"),
+                entry.get("down_payment"),
+                entry.get("total_amount_paid"),
+                entry.get("balance"),
+            ))
+            s_no+=1
