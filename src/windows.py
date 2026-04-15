@@ -441,17 +441,7 @@ class windows:
         table_cr_acc_widths= [50,100,110,150,130,120,130,120]
         table_cr_acc = create_treeview(self.root, table_cr_acc_columns, table_cr_acc_widths,18)
 
-        table_cr_acc.insert("", END, values=(
-            1,
-            "11/04/2026",
-            "Redmi Note 14pro",
-            "20/04/2026",
-            "Taha Zafar Kamali",
-            "42101-1234567-9",
-            "35000",
-            "35000",
-            "45000"   
-        ))  
+        self.db.load_credit_acc(table_cr_acc)
 
     def invoicing(self):
         
