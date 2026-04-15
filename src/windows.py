@@ -791,7 +791,7 @@ class windows:
             
             now = datetime.now()
             invoice_info = {
-                "invoice_no": inv_no,
+                "invoice_no": inv_no_label.cget("text"),
                 "date": now.strftime("%d-%m-%Y"),
                 "time": now.strftime("%H:%M"),
                 "profit": profit,
