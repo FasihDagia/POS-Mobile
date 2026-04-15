@@ -139,8 +139,8 @@ class database:
             table.delete(ro)
 
         filter ={
-            "customer_name":row[4],
-            "customer_cnic":row[5]
+            "customer_name":row[3],
+            "customer_cnic":row[4]
         }
 
         history = self.credit_accounts_history.find(filter)
@@ -148,8 +148,8 @@ class database:
         for entry in history:
             table.insert("",END,values=(
                 s_no,
-                entry.get("date"),
-                entry.get("amount_paid"),
+                entry.get("inv_date"),
+                entry.get("down_payment"),
                 entry.get("balance")
             )) 
             s_no+=1

@@ -418,10 +418,10 @@ class windows:
                 details_frame = Frame(popup)
                 details_frame.pack(pady=10)
 
-                ttk.Label(details_frame,text=f"Customer Name: {row[4]}",font=("Helvetica",12,"bold")).grid(row=0,column=0, padx=7, pady=5)
-                ttk.Label(details_frame,text=f"Customer CNIC: {row[5]}",font=("Helvetica",12,"bold")).grid(row=0,column=1, padx=7, pady=5)
-                ttk.Label(details_frame,text=f"Total Amount Paid: {row[7]}",font=("Helvetica",12,"bold")).grid(row=1,column=0, padx=7, pady=5)
-                ttk.Label(details_frame,text=f"Balance: {row[8]}",font=("Helvetica",12,"bold")).grid(row=1,column=1, padx=7, pady=5)
+                ttk.Label(details_frame,text=f"Customer Name: {row[3]}",font=("Helvetica",12,"bold")).grid(row=0,column=0, padx=7, pady=5)
+                ttk.Label(details_frame,text=f"Customer CNIC: {row[4]}",font=("Helvetica",12,"bold")).grid(row=0,column=1, padx=7, pady=5)
+                ttk.Label(details_frame,text=f"Total Amount Paid: {row[6]}",font=("Helvetica",12,"bold")).grid(row=1,column=0, padx=7, pady=5)
+                ttk.Label(details_frame,text=f"Balance: {row[7]}",font=("Helvetica",12,"bold")).grid(row=1,column=1, padx=7, pady=5)
 
                 table_acc_his_columns =["S.NO", "Date","Amount Paid","Balance"]
                 table_acc_his_widths= [50,100,130,120]
