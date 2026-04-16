@@ -5,7 +5,8 @@ def main():
     win = windows(root)
     # win.landing_page()
     # win.home_page()
-    win.invoicing()
+    # win.invoicing()
+    win.settle_account()
 
     root.mainloop()
 

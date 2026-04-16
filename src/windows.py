@@ -1,7 +1,7 @@
 from tkinter import ttk,messagebox,Frame,Toplevel,PhotoImage,END,Canvas
 from tkinter import *
 from src.database import database
-from src.utils import center_window,destroy_widgets,create_treeview,get_selected,grid_label,grid_create_treeview,print_invoice,clear_entries
+from src.utils import center_window,destroy_widgets,create_treeview,get_selected,grid_label,grid_create_treeview,print_invoice,add_placeholder
 from datetime import date,datetime
 
 
@@ -11,6 +11,7 @@ class windows:
         self.root = root
         self.db = database(self.root)
         self.imeis = []
+        self.timer = None
 
     def landing_page(self):
 
@@ -400,48 +401,152 @@ class windows:
 
         ttk.Label(self.root,text="Credit Accounts",font=("Helvetica",20,"bold")).pack(pady=5)
 
-        def show_history():
-            row = get_selected(table_cr_acc)
-            if row:
-                popup = Toplevel(self.root)
-                popup.title("Customer Account History")
-                center_window(popup,800,600)
+        # def show_history():
+        #     row = get_selected(table_cr_acc)
+        #     if row:
+        #         popup = Toplevel(self.root)
+        #         popup.title("Customer Account History")
+        #         center_window(popup,800,600)
 
-                img = PhotoImage(file="E:/POS Mobile/assets/back.png")
-                smaller_img = img.subsample(30, 30)
+        #         img = PhotoImage(file="E:/POS Mobile/assets/back.png")
+        #         smaller_img = img.subsample(30, 30)
 
-                bk_btn = ttk.Button(popup,image=smaller_img,cursor="hand2",command=lambda:popup.destroy())
-                bk_btn.image = smaller_img
-                bk_btn.pack(anchor="nw", padx=10, pady=10)
+        #         bk_btn = ttk.Button(popup,image=smaller_img,cursor="hand2",command=lambda:popup.destroy())
+        #         bk_btn.image = smaller_img
+        #         bk_btn.pack(anchor="nw", padx=10, pady=10)
 
-                ttk.Label(popup,text="Customer Account History",font=("Helvetica",17,"bold")).pack(pady=5)
-                details_frame = Frame(popup)
-                details_frame.pack(pady=10)
+        #         ttk.Label(popup,text="Customer Account History",font=("Helvetica",17,"bold")).pack(pady=5)
+        #         details_frame = Frame(popup)
+        #         details_frame.pack(pady=10)
 
-                ttk.Label(details_frame,text=f"Customer Name: {row[3]}",font=("Helvetica",12,"bold")).grid(row=0,column=0, padx=7, pady=5)
-                ttk.Label(details_frame,text=f"Customer CNIC: {row[4]}",font=("Helvetica",12,"bold")).grid(row=0,column=1, padx=7, pady=5)
-                ttk.Label(details_frame,text=f"Total Amount Paid: {row[6]}",font=("Helvetica",12,"bold")).grid(row=1,column=0, padx=7, pady=5)
-                ttk.Label(details_frame,text=f"Balance: {row[7]}",font=("Helvetica",12,"bold")).grid(row=1,column=1, padx=7, pady=5)
+        #         ttk.Label(details_frame,text=f"Customer Name: {row[3]}",font=("Helvetica",12,"bold")).grid(row=0,column=0, padx=7, pady=5)
+        #         ttk.Label(details_frame,text=f"Customer CNIC: {row[4]}",font=("Helvetica",12,"bold")).grid(row=0,column=1, padx=7, pady=5)
+        #         ttk.Label(details_frame,text=f"Total Amount Paid: {row[6]}",font=("Helvetica",12,"bold")).grid(row=1,column=0, padx=7, pady=5)
+        #         ttk.Label(details_frame,text=f"Balance: {row[7]}",font=("Helvetica",12,"bold")).grid(row=1,column=1, padx=7, pady=5)
 
-                table_acc_his_columns =["S.NO", "Date","Amount Paid","Balance"]
-                table_acc_his_widths= [50,100,130,120]
-                table_acc_his = create_treeview(popup, table_acc_his_columns, table_acc_his_widths,18)
-                self.db.load_cr_acc_history(row,table_acc_his)
+        #         table_acc_his_columns =["S.NO", "Date","Amount Paid","Balance"]
+        #         table_acc_his_widths= [50,100,130,120]
+        #         table_acc_his = create_treeview(popup, table_acc_his_columns, table_acc_his_widths,18)
+        #         self.db.load_cr_acc_history(row,table_acc_his)
 
-            else:
-                messagebox.showerror("Input Missing","Please Select a Customer!")
+        #     else:
+        #         messagebox.showerror("Input Missing","Please Select a Customer!")
         
         btn_frame = Frame(self.root)
         btn_frame.pack(pady=10)
 
-        ttk.Button(btn_frame,text="Settel Account",style="Module.TButton",cursor="hand2",).grid(padx=7,pady=5,row=0,column=0)
-        ttk.Button(btn_frame,text="Show History",style="Module.TButton",cursor="hand2",command=show_history).grid(padx=7,pady=5,row=0,column=1)
+        ttk.Button(btn_frame,text="Settel Account",style="Module.TButton",cursor="hand2",command=self.settle_account).grid(padx=7,pady=5,row=0,column=0)
+        # ttk.Button(btn_frame,text="Show History",style="Module.TButton",cursor="hand2",command=show_history).grid(padx=7,pady=5,row=0,column=1)
 
         table_cr_acc_columns =["S.NO", "Date","Next Due Date","Customer Name", "Customer CNIC","Down Payment","Total Amount Paid","Balance"]
         table_cr_acc_widths= [50,100,110,150,130,120,130,120]
         table_cr_acc = create_treeview(self.root, table_cr_acc_columns, table_cr_acc_widths,18)
 
         self.db.load_credit_acc(table_cr_acc)
+
+    def settle_account(self):
+        popup = Toplevel(self.root)
+        center_window(popup,650,400)
+        popup.title("Settle Credit Account")
+
+        style = ttk.Style()
+        style.configure("Module.TButton", font=("Helvetica", 11),padding=6,borderwidth=2)
+
+        img = PhotoImage(file="E:/POS Mobile/assets/back.png")
+        smaller_img = img.subsample(30, 30)
+
+        bk_btn = ttk.Button(popup,image=smaller_img,cursor="hand2",command=lambda:popup.destroy())
+        bk_btn.image = smaller_img
+        bk_btn.pack(anchor="nw", padx=10, pady=10)
+
+        ttk.Label(popup,text="Settle Credit Account",font=("Helvetica",18,"bold")).pack(pady=15)
+        
+        entry_frame = Frame(popup)
+        entry_frame.pack(pady=10)
+
+        grid_label(entry_frame,"Date",0,0,11)
+        now = datetime.now()
+        grid_label(entry_frame,f"{now.strftime("%Y-%m-%d")}",1,0,11)
+
+        customer_names = []
+        customer_cnics = []
+        for customer in self.db.credit_accounts.find():
+            customer_names.append(customer.get("customer_name"))
+            customer_cnics.append(customer.get("customer_cnic"))
+
+        grid_label(entry_frame,"Customer Name",2,0,11)
+        customer_name_entry = ttk.Combobox(entry_frame, values=customer_names)
+        customer_name_entry.grid(row=0,column=3,padx=5,pady=10)
+        customer_name_entry.set("Select Name")
+
+        grid_label(entry_frame,"Customer CNIC",0,1,11)
+        customer_cnic_entry = ttk.Combobox(entry_frame, values=customer_cnics)
+        customer_cnic_entry.grid(row=1,column=1,padx=5,pady=10)
+        customer_cnic_entry.set("Select CNIC")
+        
+        grid_label(entry_frame,"Balance Amount:",2,1,11)
+        bal_amount_label = ttk.Label(entry_frame,text=0.00,font=("Helvetica",12,"bold"))
+        bal_amount_label.grid(column=3,row=1,padx=5,pady=7)
+
+        def name_cnic_select(*args):
+            if customer_name_entry.get() != "Select Name":
+                cus =  self.db.credit_accounts.find_one({"customer_name":customer_name_entry.get()})
+                customer_cnic_entry.set(cus.get("customer_cnic"))
+                bal_amount_label.configure(text=cus.get("balance"))
+            elif customer_cnic_entry.get()!="Select CNIC":
+                cus =  self.db.credit_accounts.find_one({"customer_cnic":customer_cnic_entry.get()})
+                customer_name_entry.set(cus.get("customer_name"))
+                bal_amount_label.configure(text=cus.get("balance"))
+
+        grid_label(entry_frame,"Amount Receivable:",0,2,11)
+        amount_recev_entry = ttk.Entry(entry_frame,font=("Helvetica",11,"bold"))
+        amount_recev_entry.grid(row=2,column=1,padx=5,pady=7)
+        
+        nt_du_dt_label = ttk.Label(entry_frame,text="Next Due Date:",font=("Helvetica",11,"bold"),foreground="grey")
+        nt_du_dt_entry = ttk.Entry(entry_frame,font=("Helvetica",11,"bold"),state=["disabled"])
+
+        text = "(yyyy-mm-dd)"
+        nt_du_dt_label.grid(row=2,column=2,padx=5,pady=7)
+        nt_du_dt_entry.grid(row=2,column=3,padx=5,pady=7)
+        add_placeholder(nt_du_dt_entry,text)
+
+        ttk.Label(entry_frame,text="Balance Due",font=("Helvetica",12,"bold")).grid(row=3,column=1,pady=10)
+        bal_due_label = ttk.Label(entry_frame,text=0.00,font=("Helvetica",12,"bold"))
+        bal_due_label.grid(row=3,column=2,pady=7)
+
+        def on_change(event):
+            
+            if self.timer:
+                self.root.after_cancel(self.timer)
+            
+            # set new timer (runs after 1 second of inactivity)
+            self.timer = self.root.after(2000, amount_check)
+
+        def amount_check(*args):
+            amount = amount_recev_entry.get()
+            if int(amount) > int(bal_amount_label.cget("text")):
+                messagebox.showwarning("Amount Excess","Receivable Amount can't be greater than balance")
+            elif int(amount) < int(bal_amount_label.cget("text")):
+                nt_du_dt_label.configure(foreground="black")
+                nt_du_dt_entry.configure(state=["!disabled"])
+                add_placeholder(nt_du_dt_entry,text)
+            else:
+                nt_du_dt_label.configure(foreground="grey")
+                nt_du_dt_entry.configure(state=["disabled"])
+            
+        def bal_due(*args):
+            amount = amount_recev_entry.get()
+            if amount:
+                bal_due_label.configure(text=(int(bal_amount_label.cget("text"))-int(amount)))
+
+        amount_recev_entry.bind("<KeyRelease>",on_change)
+        amount_recev_entry.bind("<KeyRelease>",bal_due, add="+")
+
+
+        customer_cnic_entry.bind("<<ComboboxSelected>>", name_cnic_select)
+        customer_name_entry.bind("<<ComboboxSelected>>", name_cnic_select)
+
+        ttk.Button(popup,text="Save",cursor="hand2",style="Module.TButton").pack(pady=15)
 
     def invoicing(self):
         
@@ -500,25 +605,6 @@ class windows:
 
         dw_pay_label.grid(row=5,column=0,padx=5,pady=7)
         dw_pay_entry.grid(row=5,column=1,padx=5)
-
-        def add_placeholder(entry, text):
-            entry.delete(0, END)
-            entry.insert(0, text)
-            entry.configure(foreground="grey")
-
-            def on_focus_in(event):
-                if entry.get() == text:
-                    entry.delete(0, END)
-                    entry.configure(foreground="black")
-
-            def on_focus_out(event):
-                if entry.get() == "":
-                    entry.delete(0, END)
-                    entry.insert(0, text)
-                    entry.configure(foreground="grey")
-
-            entry.bind("<FocusIn>", on_focus_in)
-            entry.bind("<FocusOut>", on_focus_out)
         
         nt_du_dt_label = ttk.Label(right_frame,text="Due Date:",font=("Helvetica",12,"bold"),foreground="grey")
         nt_du_dt_entry = ttk.Entry(right_frame,font=("Helvetica",12,"bold"),state=["disabled"])

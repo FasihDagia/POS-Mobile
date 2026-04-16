@@ -231,7 +231,22 @@ def print_invoice(data, customer, invoice_info):
     # Auto print
     os.startfile(f"{invoice_info["invoice_no"]}.pdf", "print")
     
-def clear_entries(root):
-    for widget in root.winfo_children():
-        if isinstance(widget, (ttk.Entry)):
-            widget.delete(0, END)
+
+def add_placeholder(entry, text):
+            entry.delete(0, END)
+            entry.insert(0, text)
+            entry.configure(foreground="grey")
+
+            def on_focus_in(event):
+                if entry.get() == text:
+                    entry.delete(0, END)
+                    entry.configure(foreground="black")
+
+            def on_focus_out(event):
+                if entry.get() == "":
+                    entry.delete(0, END)
+                    entry.insert(0, text)
+                    entry.configure(foreground="grey")
+
+            entry.bind("<FocusIn>", on_focus_in)
+            entry.bind("<FocusOut>", on_focus_out)
