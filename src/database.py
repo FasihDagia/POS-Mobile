@@ -182,7 +182,8 @@ class database:
             "due_date": customer["due_date"],
             "purchased_items": data,
             "total_amount_paid":customer["down_payment"],
-            "balance": customer["balance"]
+            "balance": customer["balance"],
+            "status":"unsettled"
         }
 
         for items in data:
@@ -248,14 +249,36 @@ class database:
 
         s_no =1
         for entry in entries:
-            table.insert("", END,values=(
-                s_no,
-                entry.get("inv_date"),
-                entry.get("due_date"),
-                entry.get("customer_name"),
-                entry.get("customer_cnic"),
-                entry.get("down_payment"),
-                entry.get("total_amount_paid"),
-                entry.get("balance"),
-            ))
-            s_no+=1
+            if entry.get("status") == "unsettled":
+                table.insert("", END,values=(
+                    s_no,
+                    entry.get("inv_date"),
+                    entry.get("due_date"),
+                    entry.get("customer_name"),
+                    entry.get("customer_cnic"),
+                    entry.get("down_payment"),
+                    entry.get("total_amount_paid"),
+                    entry.get("balance"),
+                ))
+                s_no+=1
+
+    def save_cr_settle(self,data):
+        filter = {
+            "customer_name": data["customer_name"],
+            "customer_cnic":data["customer_cnic"]
+        }
+        entry = self.credit_accounts.find_one(filter)
+        if entry:
+            if data["balance"] == 0:
+                self.credit_accounts.update_one(entry,{"$set":{
+                    "due_date":"Nill",
+                    "total_amount_paid": (int(entry.get("total_amount_paid"))+int(data["amount_receivable"])),
+                    "balance": data["balance"],
+                    "status":"settled"
+                }})
+            else:
+                self.credit_accounts.update_one(entry,{"$set":{
+                    "due_date":data["nt_du_dt"],
+                    "total_amount_paid": (int(entry.get("total_amount_paid"))+int(data["amount_receivable"])),
+                    "balance": data["balance"],
+                }})

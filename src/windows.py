@@ -542,7 +542,6 @@ class windows:
         amount_recev_entry.bind("<KeyRelease>",on_change)
         amount_recev_entry.bind("<KeyRelease>",bal_due, add="+")
 
-
         customer_cnic_entry.bind("<<ComboboxSelected>>", name_cnic_select)
         customer_name_entry.bind("<<ComboboxSelected>>", name_cnic_select)
 
