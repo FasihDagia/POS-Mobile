@@ -231,7 +231,6 @@ def print_invoice(data, customer, invoice_info):
     # Auto print
     os.startfile(f"{invoice_info["invoice_no"]}.pdf", "print")
     
-
 def add_placeholder(entry, text):
             entry.delete(0, END)
             entry.insert(0, text)

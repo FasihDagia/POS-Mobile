@@ -271,14 +271,17 @@ class database:
         if entry:
             if data["balance"] == 0:
                 self.credit_accounts.update_one(entry,{"$set":{
-                    "due_date":"Nill",
+                    "inv_date": data["last_payment_dt"],
+                    "due_date":data["due_date"],
                     "total_amount_paid": (int(entry.get("total_amount_paid"))+int(data["amount_receivable"])),
                     "balance": data["balance"],
                     "status":"settled"
                 }})
             else:
                 self.credit_accounts.update_one(entry,{"$set":{
-                    "due_date":data["nt_du_dt"],
+                    "inv_date": data["last_payment_dt"],
+                    "due_date":data["due_date"],
                     "total_amount_paid": (int(entry.get("total_amount_paid"))+int(data["amount_receivable"])),
                     "balance": data["balance"],
                 }})
+            self.credit_accounts_history.insert_one(data)

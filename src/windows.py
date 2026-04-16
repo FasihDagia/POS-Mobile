@@ -435,16 +435,16 @@ class windows:
         btn_frame = Frame(self.root)
         btn_frame.pack(pady=10)
 
-        ttk.Button(btn_frame,text="Settel Account",style="Module.TButton",cursor="hand2",command=self.settle_account).grid(padx=7,pady=5,row=0,column=0)
+        ttk.Button(btn_frame,text="Settel Account",style="Module.TButton",cursor="hand2",command=lambda:self.settle_account(table_cr_acc)).grid(padx=7,pady=5,row=0,column=0)
         # ttk.Button(btn_frame,text="Show History",style="Module.TButton",cursor="hand2",command=show_history).grid(padx=7,pady=5,row=0,column=1)
 
-        table_cr_acc_columns =["S.NO", "Date","Next Due Date","Customer Name", "Customer CNIC","Down Payment","Total Amount Paid","Balance"]
-        table_cr_acc_widths= [50,100,110,150,130,120,130,120]
+        table_cr_acc_columns =["S.NO", "Last Payment Date","Next Due Date","Customer Name", "Customer CNIC","Down Payment","Total Amount Paid","Balance"]
+        table_cr_acc_widths= [50,120,110,150,130,120,130,120]
         table_cr_acc = create_treeview(self.root, table_cr_acc_columns, table_cr_acc_widths,18)
 
         self.db.load_credit_acc(table_cr_acc)
 
-    def settle_account(self):
+    def settle_account(self,table):
         popup = Toplevel(self.root)
         center_window(popup,650,400)
         popup.title("Settle Credit Account")
@@ -545,8 +545,36 @@ class windows:
         customer_cnic_entry.bind("<<ComboboxSelected>>", name_cnic_select)
         customer_name_entry.bind("<<ComboboxSelected>>", name_cnic_select)
 
-        ttk.Button(popup,text="Save",cursor="hand2",style="Module.TButton").pack(pady=15)
+        ttk.Button(popup,text="Save",cursor="hand2",style="Module.TButton",command=lambda:save_cr()).pack(pady=15)
 
+        def save_cr():
+            data = {}
+
+            try:
+                now = datetime.now()
+                date = now.strftime("%Y-%m-%d")
+                cus_name = customer_name_entry.get()
+                cus_cnic = customer_cnic_entry.get()
+                amount_receivable = amount_recev_entry.get()
+                bal_due = int(bal_due_label.cget("text"))
+                if bal_due > 0:
+                    due_date = nt_du_dt_entry.get()
+                else:
+                    due_date = "Nill"
+            except:
+                messagebox.showerror("Missing Fields","Please Enter all fields")
+            
+            data["last_payment_dt"] = date
+            data["customer_name"] = cus_name
+            data["customer_cnic"] = cus_cnic
+            data["amount_receivable"] = amount_receivable
+            data["balance"] = bal_due
+            data["due_date"] = due_date
+
+            self.db.save_cr_settle(data)
+            messagebox.showinfo("Account Updated","Credit account updated successfully!")
+            popup.destroy()
+            self.db.load_credit_acc(table)
     def invoicing(self):
         
         destroy_widgets(self.root)

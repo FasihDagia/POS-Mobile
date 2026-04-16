@@ -4,9 +4,9 @@ def main():
     root = tk.Tk()
     win = windows(root)
     # win.landing_page()
-    # win.home_page()
+    win.home_page()
     # win.invoicing()
-    win.settle_account()
+    # win.settle_account()
 
     root.mainloop()
 
