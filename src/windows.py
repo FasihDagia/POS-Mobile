@@ -12,6 +12,7 @@ class windows:
         self.db = database(self.root)
         self.imeis = []
         self.timer = None
+        self.win = None
 
     def landing_page(self):
 
@@ -841,6 +842,20 @@ class windows:
         inv_table_widths = [50,120,120,100,100,120]
         inv_table = grid_create_treeview(left_frame,inv_table_columns,inv_table_widths,18)
 
+        def reset_ui():
+            for widget in right_frame.winfo_children():
+                if isinstance(widget, (Entry, ttk.Entry)):
+                    widget.delete(0, 'end')
+
+            for row in inv_table.get_children():
+                inv_table.delete(row)
+
+            inv_no = f"INV{str(self.db.sales.count_documents({}) + 1).zfill(5)}"
+            inv_no_label.configure(text=inv_no)
+
+            total_label.configure(text=0.00)
+            total_label_in.configure(text=0.00)
+
         def save():
             if not cus_name_entry.get() or not cus_cnic_entry.get() or pay_ty_entry.get() == "Select type":
                 messagebox.showerror("Missing Feilds","Please fill all the fields")
@@ -903,22 +918,9 @@ class windows:
                 "total_inv_amount":int(total_label.cget("text"))
             }
             
-            self.view_invoice(data,customer,invoice_info,inv_table,total_label,right_frame,inv_no_label,total_label_in)
-
-            for widget in right_frame.winfo_children():
-                if isinstance(widget, (Entry, ttk.Entry)):
-                    widget.delete(0, 'end')
+            self.view_invoice(data, customer, invoice_info, on_save=reset_ui)
         
-            for row in inv_table.get_children():
-                inv_table.delete(row)
-        
-            inv_no = f"INV{str(self.sales.count_documents({}) + 1).zfill(5)}"
-            inv_no_label.configure(text=inv_no)
-            
-            total_label.configure(text=0.00)
-            total_label_in.configure(text=0.00)
-        
-    def view_invoice(self,data, customer, invoice_info):
+    def view_invoice(self,data, customer, invoice_info,on_save = None):
 
         win = Toplevel(self.root)
         win.title("Invoice Preview")
@@ -1001,12 +1003,12 @@ class windows:
         btn_frame = Frame(main)
         btn_frame.pack(pady=10)
 
-        ttk.Button(btn_frame, text="Save",command=lambda: self.db.save_invoice(data,customer,invoice_info,win)).grid(row=0,column=0,pady=10)
-        ttk.Button(btn_frame, text="print",command=lambda: print_invoice(data,customer,invoice_info)).grid(row=0,column=1,pady=10)
+        ttk.Button(btn_frame, text="Save",command=lambda: self.db.save_invoice(data,customer,invoice_info,win,on_save=on_save)).grid(row=0,column=0,pady=10)
+        ttk.Button(btn_frame, text="Print",command=lambda: print_invoice(data,customer,invoice_info)).grid(row=0,column=1,pady=10)
         ttk.Button(btn_frame, text="Save & Print",command=lambda:save_print).grid(row=0,column=2,pady=10)
 
         def save_print():
-            self.db.save_invoice(data,customer,invoice_info,win)
+            self.db.save_invoice(data,customer,invoice_info,win,on_save=on_save)
             print_invoice(data,customer,invoice_info)
 
     def sales(self):

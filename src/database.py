@@ -133,7 +133,7 @@ class database:
                 entry
                 ))
             
-    def save_invoice(self,data,customer,invoice_info,win):
+    def save_invoice(self,data,customer,invoice_info,win,on_save=None):
 
         details = {
             "invoice_no":invoice_info["invoice_no"],
@@ -202,7 +202,8 @@ class database:
             
         
         messagebox.showinfo("Success","Invoice Saved successfuly!")
-        
+        if on_save:
+            on_save()
         win.destroy()
 
     def load_credit_acc(self,table):
