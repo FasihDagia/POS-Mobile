@@ -1003,7 +1003,8 @@ class windows:
         btn_frame.pack(pady=10)
 
         ttk.Button(btn_frame, text="Save",command=lambda: self.db.save_invoice(data,customer,invoice_info,win)).grid(row=0,column=0,pady=10)
-        ttk.Button(btn_frame, text="Save & Print",command=lambda:save_print).grid(row=0,column=1,pady=10)
+        ttk.Button(btn_frame, text="print",command=lambda: print_invoice(data,customer,invoice_info)).grid(row=0,column=1,pady=10)
+        ttk.Button(btn_frame, text="Save & Print",command=lambda:save_print).grid(row=0,column=2,pady=10)
 
         def save_print():
             self.db.save_invoice(data,customer,invoice_info,win)
@@ -1043,7 +1044,22 @@ class windows:
                         "price": prod[4]
                     })
             
-                invoice_info ={}
+                invoice_info ={
+                    "invoice_no":find.get("invoice_no"),
+                    "date": find.get("inv_date"),
+                    "time": find.get("inv_time"),
+                    "total_inv_amount":find.get("total_inv_amount")
+                }
+
+                customer = {
+                    "name" : find.get("customer_name"),
+                    "cnic": find.get("customer_cnic"),
+                    "payment_type": find.get("payment_type"),
+                    "down_payment": find.get("down_payment"),
+                    "due_date": find.get("due_date"),
+                }
+
+                self.view_invoice(data,customer,invoice_info)
 
         ttk.Button(self.root,text="View Invoice",cursor="hand2",style="Module.TButton",command=view_inv).pack(pady=10)
 
