@@ -837,9 +837,33 @@ class windows:
                 
         ttk.Button(left_frame,text="Add",cursor="hand2",style="Module.TButton",command=add).grid(row=1,column=4,columnspan=2,padx=5)
         
+        def remove_item():
+            selected = inv_table.selection()
+
+            if not selected:
+                messagebox.showerror("No Selection", "Please select an item to remove")
+                return
+
+            for item in selected:
+                values = inv_table.item(item, "values")
+                price = float(values[5])  
+
+                # subtract from total
+                current_total = float(total_label.cget("text"))
+                total_label.configure(text=current_total - price)
+
+                inv_table.delete(item)
+
+            for index, row in enumerate(inv_table.get_children(), start=1):
+                values = list(inv_table.item(row, "values"))
+                values[0] = index
+                inv_table.item(row, values=values)
+        
         inv_table_columns = ["S.NO","IMEI NO","Model","Storage","Condition","Price"]
         inv_table_widths = [50,120,120,100,100,120]
         inv_table = grid_create_treeview(left_frame,inv_table_columns,inv_table_widths,18)
+
+        inv_table.bind("<Double-1>", lambda e: remove_item())
 
         def reset_ui():
             for widget in right_frame.winfo_children():
