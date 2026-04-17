@@ -154,7 +154,7 @@ class database:
             )) 
             s_no+=1
 
-    def save_invoice(self,data,customer,invoice_info,frame,treeview,total_label,win,inv_no_label,total_label_in):
+    def save_invoice(self,data,customer,invoice_info,win):
 
         details = {
             "invoice_no":invoice_info["invoice_no"],
@@ -223,20 +223,6 @@ class database:
             
         
         messagebox.showinfo("Success","Invoice Saved successfuly!")
-        
-        #resetting entries
-        for widget in frame.winfo_children():
-            if isinstance(widget, (Entry, ttk.Entry)):
-                widget.delete(0, 'end')
-        
-        for row in treeview.get_children():
-            treeview.delete(row)
-        
-        inv_no = f"INV{str(self.sales.count_documents({}) + 1).zfill(5)}"
-        inv_no_label.configure(text=inv_no)
-        
-        total_label.configure(text=0.00)
-        total_label_in.configure(text=0.00)
         
         win.destroy()
 
