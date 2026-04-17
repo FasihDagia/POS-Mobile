@@ -918,12 +918,11 @@ class windows:
             total_label.configure(text=0.00)
             total_label_in.configure(text=0.00)
         
-
     def view_invoice(self,data, customer, invoice_info):
 
         win = Toplevel(self.root)
         win.title("Invoice Preview")
-        win.geometry("600x700")
+        center_window(win,600,700)
         win.configure(bg="white")
 
         img = PhotoImage(file="E:/POS Mobile/assets/back.png")
@@ -1031,17 +1030,17 @@ class windows:
 
         def view_inv():
             row = get_selected(table_sales)
-            filter = {"invoice_no":row.get("invoice_no")}
+            filter = {"invoice_no":row[2]}
             find = self.db.sales.find_one(filter)
             if find:
                 data = []
                 for prod in find.get("purchased_items"):
                     data.append({
-                        "imei": str(prod[0]),
-                        "model": prod[1],
-                        "storage": prod[2],
-                        "condition": prod[3],
-                        "price": prod[4]
+                        "imei": prod.get("imei"),
+                        "model": prod.get("model"),
+                        "storage": prod.get("storage"),
+                        "condition": prod.get("condition"),
+                        "price": prod.get("price")
                     })
             
                 invoice_info ={
@@ -1060,12 +1059,13 @@ class windows:
                 }
 
                 self.view_invoice(data,customer,invoice_info)
+            else:
+                messagebox.showerror("Invalid Invoice","Please Select a Invoice")
 
         ttk.Button(self.root,text="View Invoice",cursor="hand2",style="Module.TButton",command=view_inv).pack(pady=10)
 
         sales_table_columns = ["S NO","Date","Invoice NO","Customer Name","Customer CNIC","Payment Type","Total Invoice Amount","Amount Received"]
         sales_columns_width = [50,100,110,150,150,120,160,160]
         table_sales = create_treeview(self.root, sales_table_columns, sales_columns_width,18)
-
-
+        self.db.load_sales(table_sales)
 

@@ -271,3 +271,35 @@ class database:
                     "balance": data["balance"],
                 }})
             self.credit_accounts_history.insert_one(data)
+
+    def load_sales(self,table):
+        for row in table.get_children():
+            table.delete(row)
+
+        entries = self.sales.find()
+        s_no =1
+        for entry in entries:
+            if entry.get("down_payment") == 0:
+                table.insert("", END,values=(
+                    s_no,
+                    entry.get("inv_date"),
+                    entry.get("invoice_no"),
+                    entry.get("customer_name"),
+                    entry.get("customer_cnic"),
+                    entry.get("payment_type"),
+                    entry.get("total_inv_amount"),
+                    entry.get("total_inv_amount"),
+                ))
+            else:
+                table.insert("", END,values=(
+                    s_no,
+                    entry.get("inv_date"),
+                    entry.get("invoice_no"),
+                    entry.get("customer_name"),
+                    entry.get("customer_cnic"),
+                    entry.get("payment_type"),
+                    entry.get("total_inv_amount"),
+                    entry.get("down_payment"),
+                ))
+            s_no+=1
+
