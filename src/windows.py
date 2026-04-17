@@ -1,7 +1,7 @@
 from tkinter import ttk,messagebox,Frame,Toplevel,PhotoImage,END,Canvas
 from tkinter import *
 from src.database import database
-from src.utils import center_window,destroy_widgets,create_treeview,get_selected,grid_label,grid_create_treeview,print_invoice,add_placeholder
+from src.utils import center_window,destroy_widgets,create_treeview,get_selected,grid_label,grid_create_treeview,print_invoice,add_placeholder,resource_path
 from datetime import date,datetime
 
 
@@ -50,7 +50,7 @@ class windows:
         style.configure("Log_exit.TButton", font=("Helvetica", 9),padding=3,borderwidth=2)
 
 
-        img = PhotoImage(file="E:/POS Mobile/assets/back.png")
+        img = PhotoImage(file=resource_path("assets/back.png"))
         smaller_img = img.subsample(30, 30)
 
         bk_btn = ttk.Button(popup,image=smaller_img,cursor="hand2",command=lambda: popup.destroy())
@@ -91,7 +91,7 @@ class windows:
         style = ttk.Style()
         style.configure("Log_exit.TButton", font=("Helvetica", 10),padding=3,borderwidth=2)
 
-        img = PhotoImage(file="E:/POS Mobile/assets/back.png")
+        img = PhotoImage(file=resource_path("assets/back.png"))
         smaller_img = img.subsample(30, 30)
 
         bk_btn = ttk.Button(popup,image=smaller_img,cursor="hand2",command=lambda:popup.destroy())
@@ -135,7 +135,7 @@ class windows:
         style = ttk.Style()
         style.configure("Log_exit.TButton", font=("Helvetica", 10),padding=3,borderwidth=2)
 
-        img = PhotoImage(file="E:/POS Mobile/assets/back.png")
+        img = PhotoImage(file=resource_path("assets/back.png"))
         smaller_img = img.subsample(30, 30)
 
         def back():
@@ -182,7 +182,7 @@ class windows:
         center_window(self.root, 600,400)
         self.root.title("HomePage")
 
-        img = PhotoImage(file="E:/POS Mobile/assets/logout.png")
+        img = PhotoImage(file=resource_path("assets/logout.png"))
         smaller_img = img.subsample(25, 25)
 
         bk_btn = ttk.Button(self.root,image=smaller_img,text="Logout",cursor="hand2",compound="left",style="Logout.TButton",command=self.landing_page)
@@ -220,7 +220,7 @@ class windows:
         style = ttk.Style()
         style.configure("Log.TButton", font=("Helvetica", 11),padding=6,borderwidth=2)
 
-        img = PhotoImage(file="E:/POS Mobile/assets/back.png")
+        img = PhotoImage(file=resource_path("assets/back.png"))
         smaller_img = img.subsample(30, 30)
 
         bk_btn = ttk.Button(self.root,image=smaller_img,cursor="hand2",command=self.home_page)
@@ -236,7 +236,7 @@ class windows:
                 popup.title("IMEI Nos")
                 center_window(popup,350,550)
 
-                img = PhotoImage(file="E:/POS Mobile/assets/back.png")
+                img = PhotoImage(file=resource_path("assets/back.png"))
                 smaller_img = img.subsample(30, 30)
 
                 bk_btn = ttk.Button(popup,image=smaller_img,cursor="hand2",command=lambda:popup.destroy())
@@ -271,7 +271,7 @@ class windows:
         style = ttk.Style()
         style.configure("Module.TButton", font=("Helvetica", 11),padding=6,borderwidth=2)
 
-        img = PhotoImage(file="E:/POS Mobile/assets/back.png")
+        img = PhotoImage(file=resource_path("assets/back.png"))
         smaller_img = img.subsample(25, 25)
 
         bk_btn = ttk.Button(self.root,image=smaller_img,cursor="hand2",style="Logout.TButton",command=self.home_page)
@@ -392,7 +392,7 @@ class windows:
         style = ttk.Style()
         style.configure("Module.TButton", font=("Helvetica", 11),padding=6,borderwidth=2)
 
-        img = PhotoImage(file="E:/POS Mobile/assets/back.png")
+        img = PhotoImage(file=resource_path("assets/back.png"))
         smaller_img = img.subsample(30, 30)
 
         bk_btn = ttk.Button(self.root,image=smaller_img,cursor="hand2",command=self.home_page)
@@ -408,7 +408,7 @@ class windows:
         #         popup.title("Customer Account History")
         #         center_window(popup,800,600)
 
-        #         img = PhotoImage(file="E:/POS Mobile/assets/back.png")
+        #         img = PhotoImage(file=resource_path("assets/back.png"))
         #         smaller_img = img.subsample(30, 30)
 
         #         bk_btn = ttk.Button(popup,image=smaller_img,cursor="hand2",command=lambda:popup.destroy())
@@ -452,7 +452,7 @@ class windows:
         style = ttk.Style()
         style.configure("Module.TButton", font=("Helvetica", 11),padding=6,borderwidth=2)
 
-        img = PhotoImage(file="E:/POS Mobile/assets/back.png")
+        img = PhotoImage(file=resource_path("assets/back.png"))
         smaller_img = img.subsample(30, 30)
 
         bk_btn = ttk.Button(popup,image=smaller_img,cursor="hand2",command=lambda:popup.destroy())
@@ -587,7 +587,7 @@ class windows:
         style.configure("Module.TButton", font=("Helvetica", 11),padding=4,borderwidth=2)
         style.configure("Save.TButton", font=("Helvetica", 11),padding=6,borderwidth=2)
 
-        img = PhotoImage(file="E:/POS Mobile/assets/back.png")
+        img = PhotoImage(file=resource_path("assets/back.png"))
         smaller_img = img.subsample(30, 30)
 
         bk_btn = ttk.Button(self.root,image=smaller_img,cursor="hand2",command=self.home_page)
@@ -926,7 +926,7 @@ class windows:
         center_window(win,600,700)
         win.configure(bg="white")
 
-        img = PhotoImage(file="E:/POS Mobile/assets/back.png")
+        img = PhotoImage(file=resource_path("assets/back.png"))
         smaller_img = img.subsample(35, 35)
 
         bk_btn = ttk.Button(win,image=smaller_img,cursor="hand2",command=lambda:win.destroy())
@@ -1020,7 +1020,7 @@ class windows:
         style = ttk.Style()
         style.configure("Module.TButton", font=("Helvetica", 11),padding=6,borderwidth=2)
 
-        img = PhotoImage(file="E:/POS Mobile/assets/back.png")
+        img = PhotoImage(file=resource_path("assets/back.png"))
         smaller_img = img.subsample(30, 30)
 
         bk_btn = ttk.Button(self.root,image=smaller_img,cursor="hand2",command=self.home_page)
