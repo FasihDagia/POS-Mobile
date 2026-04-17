@@ -12,7 +12,6 @@ class windows:
         self.db = database(self.root)
         self.imeis = []
         self.timer = None
-        self.win = None
 
     def landing_page(self):
 
