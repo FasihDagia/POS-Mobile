@@ -133,27 +133,6 @@ class database:
                 entry
                 ))
             
-    def load_cr_acc_history(self,row,table):
-        
-        for ro in table.get_children():
-            table.delete(ro)
-
-        filter ={
-            "customer_name":row[3],
-            "customer_cnic":row[4]
-        }
-
-        history = self.credit_accounts_history.find(filter)
-        s_no = 1
-        for entry in history:
-            table.insert("",END,values=(
-                s_no,
-                entry.get("inv_date"),
-                entry.get("down_payment"),
-                entry.get("balance")
-            )) 
-            s_no+=1
-
     def save_invoice(self,data,customer,invoice_info,win):
 
         details = {
@@ -303,3 +282,23 @@ class database:
                 ))
             s_no+=1
 
+    def load_cr_acc_history(self,row,table):
+        
+        for ro in table.get_children():
+            table.delete(ro)
+
+        filter ={
+            "customer_name":row[3],
+            "customer_cnic":row[4]
+        }
+
+        history = self.credit_accounts_history.find(filter)
+        s_no = 1
+        for entry in history:
+            table.insert("",END,values=(
+                s_no,
+                entry.get("inv_date"),
+                entry.get("down_payment"),
+                entry.get("balance")
+            )) 
+            s_no+=1
