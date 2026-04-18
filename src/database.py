@@ -6,16 +6,20 @@ from pymongo.errors import PyMongoError
 import hashlib
 from tkinter import ttk
 from tkinter import *
+from src.utils import env_resource_path
 from dotenv import load_dotenv
+import certifi
 
 class database:
     def __init__(self,root):
-        load_dotenv()
+        load_dotenv(env_resource_path(".env"))
         mongo_uri = os.getenv("MONGO_URI")
         try:
             self.client = MongoClient(
                 mongo_uri,
-                serverSelectionTimeoutMS=5000
+                serverSelectionTimeoutMS=5000,
+                tls=True,
+                tlsCAFile=certifi.where() 
             )
             self.client.server_info()
 
@@ -24,7 +28,7 @@ class database:
             root.withdraw()
             messagebox.showerror(
                 "Database Connection Error",
-                f"Failed to connect to database\n Contact Developer"
+                f"Failed to connect to database\n Contact Developer\n{e}"
             )
             root.destroy()
             sys.exit()
