@@ -3,6 +3,7 @@ from tkinter import *
 from src.database import database
 from src.utils import center_window,destroy_widgets,create_treeview,get_selected,grid_label,grid_create_treeview,print_invoice,add_placeholder,resource_path
 from datetime import date,datetime
+from tkcalendar import DateEntry
 
 
 class windows:
@@ -10,7 +11,7 @@ class windows:
     def __init__(self,root):
         self.root = root
         self.db = database(self.root)
-        self.imeis = []
+        self.imeis = {}
         self.timer = None
 
     def landing_page(self):
@@ -43,6 +44,7 @@ class windows:
 
         popup = Toplevel(self.root)
         center_window(popup, 400, 260)
+        popup.iconbitmap(resource_path("assets/point-of-sale.ico"))
         popup.title("Login")
 
         style = ttk.Style()
@@ -66,6 +68,7 @@ class windows:
 
         password = ttk.Entry(entry_frame, width=30, show="*", font=("Helvetica", 10, "bold"))
         password.grid(row=0, column=1, padx=10)
+        password.focus_set()
 
         def handle_login():
             if self.db.verify_password(password.get()):
@@ -86,6 +89,7 @@ class windows:
     def create_password(self):
         popup = Toplevel(self.root)
         center_window(popup, 400, 235)
+        popup.iconbitmap(resource_path("assets/point-of-sale.ico"))
         popup.title("Set Password")
 
         style = ttk.Style()
@@ -106,6 +110,7 @@ class windows:
         ttk.Label(entry_frame, text="Enter Password", font=("Helvetica", 10, "bold")).grid(row=0,column=0,pady=10)
         pw1 = ttk.Entry(entry_frame, show="*")
         pw1.grid(row=0,column=1, pady=5)
+        pw1.focus_set()
 
         ttk.Label(entry_frame, text="ReEnter Password", font=("Helvetica", 10, "bold")).grid(row=1,column=0,pady=10)
         pw2 = ttk.Entry(entry_frame, show="*")
@@ -130,6 +135,7 @@ class windows:
     def reset_password(self):
         popup = Toplevel(self.root)
         center_window(popup, 400, 235)
+        popup.iconbitmap(resource_path("assets/point-of-sale.ico"))
         popup.title("Reset Password")
 
         style = ttk.Style()
@@ -154,6 +160,7 @@ class windows:
         ttk.Label(entry_frame, text="Enter Password", font=("Helvetica", 10, "bold")).grid(row=0,column=0,pady=10)
         pw1 = ttk.Entry(entry_frame, show="*")
         pw1.grid(row=0,column=1, pady=5)
+        pw1.focus_set()
 
         ttk.Label(entry_frame, text="ReEnter Password", font=("Helvetica", 10, "bold")).grid(row=1,column=0,pady=10)
         pw2 = ttk.Entry(entry_frame, show="*")
@@ -256,8 +263,8 @@ class windows:
         sh_btn = ttk.Button(self.root,text="Show IMEI",width=15,cursor="hand2",style="Log.TButton",command=show_imei)
         sh_btn.pack(pady=10)
 
-        table_stock_columns =["S.NO", "Date Purchase","Model","Storage","Quantity", "Condition","Purchse Price","Selling Price"]
-        table_stock_widths= [50,100,120,100,100,120,120,100,120] 
+        table_stock_columns =["S.NO", "Date Purchase","Model","Storage","Quantity", "Condition","Purchse Price per Unit"]
+        table_stock_widths= [50,100,120,100,100,120,120,150] 
         table_stocks = create_treeview(self.root, table_stock_columns, table_stock_widths,20)
         self.db.load_stock(table_stocks)
 
@@ -285,8 +292,10 @@ class windows:
         entry_frame.pack(pady=10)
 
         ttk.Label(entry_frame,text="Date",font=font).grid(row=0,column=0,padx=5,pady=10)
-        date_entry = ttk.Entry(entry_frame,font=font)
+        date_entry = DateEntry(entry_frame, width=12, background='darkblue',
+                       foreground='white', borderwidth=2,date_pattern="yyyy-mm-dd")
         date_entry.grid(row=0,column=1,padx=5,pady=10)
+        date_entry.set_date(date.today()) 
 
         ttk.Label(entry_frame,text="Model",font=font).grid(row=0,column=2,padx=5,pady=10)
         model_entry = ttk.Entry(entry_frame,font=font)
@@ -306,24 +315,29 @@ class windows:
         quantity_entry = ttk.Entry(entry_frame,font=font)
         quantity_entry.grid(row=2,column=1,padx=5,pady=10)
 
-        ttk.Label(entry_frame,text="Purchase Price",font=font).grid(row=2,column=2,padx=5,pady=10)
+        ttk.Label(entry_frame,text="Purchase Price per Unit",font=font).grid(row=2,column=2,padx=5,pady=10)
         purchase_price_entry = ttk.Entry(entry_frame,font=font)
         purchase_price_entry.grid(row=2,column=3,padx=5,pady=10)
 
-        ttk.Label(entry_frame,text="Sell Price",font=font).grid(row=3,column=0,padx=5,pady=10)
-        sell_price_entry = ttk.Entry(entry_frame,font=font)
-        sell_price_entry.grid(row=3,column=1,padx=5,pady=10)
+        ttk.Label(entry_frame,text="Supplier Name:",font=font).grid(row=3,column=0,padx=5,pady=10)
+        supplier_name_entry = ttk.Entry(entry_frame,font=font)
+        supplier_name_entry.grid(row=3,column=1,padx=5,pady=10)
 
-        ttk.Label(entry_frame,text="IMEI",font=font).grid(row=3,column=2,padx=5,pady=10)
+        ttk.Label(entry_frame,text="Supplier CNIC:",font=font).grid(row=3,column=2,padx=5,pady=10)
+        supplier_cnic_entry = ttk.Entry(entry_frame,font=font)
+        supplier_cnic_entry.grid(row=3,column=3,padx=5,pady=10)
+
+        ttk.Label(entry_frame,text="IMEI",font=font).grid(row=4,column=0,padx=5,pady=10)
         imei_button = ttk.Button(entry_frame,text="Enter IMEI Nos",cursor="hand2",command=lambda:imei_entry(quantity_entry))
-        imei_button.grid(row=3,column=3,padx=5,pady=10)
+        imei_button.grid(row=4,column=1,padx=5,pady=10)
 
         def imei_entry(quantity):
             quan = quantity.get()
             if quan:
                 popup = Toplevel(self.root)
-                popup.title("IMEI Entry")
                 center_window(popup, 250, 350)
+                popup.iconbitmap(resource_path("assets/point-of-sale.ico"))
+                popup.title("IMEI Entry")
                 ttk.Label(popup, text="IMEI Entry", font=("Helvetica", 12, "bold")).pack(pady=10)
 
                 container = Frame(popup)
@@ -361,13 +375,18 @@ class windows:
                     ttk.Entry(frame, width=20).grid(row=i,column=1,pady=7)
 
                 def get_imeis():
+                    imei = []
                     for entry in frame.winfo_children():
                         if not entry:
                             messagebox.showerror("Empty Input","Please Enter all Inputs")
-                            break
-                    for entry in frame.winfo_children():
-                        if not isinstance(entry,ttk.Label):
-                            self.imeis.append(entry.get())
+                            self.imeis.clear()
+                            return
+                    
+                        elif not isinstance(entry,ttk.Label):
+                                imei.append(entry.get())
+
+                    self.imeis[supplier_name_entry.get()] = imei
+                    
 
                     popup.destroy()
                 ttk.Button(scroll_frame,text="Submit",cursor="hand2",style="Module.TButton",command=get_imeis).pack(pady=5)
@@ -380,7 +399,7 @@ class windows:
                    command=lambda:self.db.add_stock(model_entry.get(),storage_entry.get(),
                                                     condition_entry.get(),date_entry.get(),
                                                     int(quantity_entry.get()),purchase_price_entry.get(),
-                                                    sell_price_entry.get(),self.imeis)).pack(pady=10)
+                                                    self.imeis,supplier_name_entry.get(),supplier_cnic_entry.get())).pack(pady=10)
 
     def credit_acc(self):
         

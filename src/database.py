@@ -60,41 +60,62 @@ class database:
         stored = self.get_password()
         return stored == self.hash_password(password)
 
-    def add_stock(self, model, storage, condition, purchase_date, quantity, purchase_price,sell_price,imei_nos):
+    def add_stock(self, model, storage, condition, purchase_date, quantity, purchase_price,imei_nos,supplier_name,supplier_cnic):
 
-        data = {
-            "purchase_date": purchase_date,
-            "model": model,
-            "storage": storage,
-            "condition": condition,
-            "quantity": quantity,
-            "purchase_price": purchase_price,
-            "sell_price": sell_price,
-            "imei_nos":imei_nos
-        }
+        if model and storage and condition and purchase_date and quantity and purchase_price and len(imei_nos[supplier_name]) == int(quantity) and supplier_cnic and supplier_name:
+            data = {
+                "purchase_date": purchase_date,
+                "model": model,
+                "storage": storage,
+                "condition": condition,
+                "quantity": quantity,
+                "purchase_price": purchase_price,
+                "imei_nos":imei_nos,
+                "suppliers":{
+                    "1":{
+                    "name":supplier_name,
+                    "cnic":supplier_cnic
+                }}
+            }
 
-        filter = {
-            "model": model,
-            "storage": storage,
-            "condition": condition,
-        }
-        exist = self.stock.find_one(filter)
-        
-        if exist:
-            imei = exist.get("imei_nos")
-            quantity = quantity+ exist["quantity"]
-            for imeis in imei_nos:
-                imei.append(imeis)
-            data["imei_nos"] = imei
-            data["quantity"] = quantity
+            filter = {
+                "model": model,
+                "storage": storage,
+                "condition": condition,
+            }
+            exist = self.stock.find_one(filter)
+            
+            if exist:
+                imei = exist.get("imei_nos")
+                quantity = quantity+ exist["quantity"]
+                suppliers = exist.get("suppliers")
+                if supplier_name in imei.keys():
+                    sup_imeis = imei[supplier_name]
+                    for imeis in imei_nos[supplier_name]:
+                        sup_imeis.append(imeis)
+                    imei[supplier_name] = sup_imeis
+                else:
+                    imei[supplier_name] = imei_nos[supplier_name]  
+                new_supplier = data["suppliers"]["1"]
+                exists = any(s["cnic"] == new_supplier["cnic"] for s in suppliers.values())
 
-            self.stock.update_one(filter,{"$set":data})
+                if not exists:
+                    new_id = str(len(suppliers.keys())+1)
+                    suppliers[new_id] = new_supplier
+                
+                data["imei_nos"] = imei
+                data["quantity"] = quantity
+                data["suppliers"] = suppliers
+
+                self.stock.update_one(filter,{"$set":data})
+            else:
+                self.stock.insert_one(data)
+
+            imei_nos.clear()
+
+            messagebox.showinfo("Success","Stock added successfully!")
         else:
-            self.stock.insert_one(data)
-
-        imei_nos.clear()
-
-        messagebox.showinfo("Success","Stock added successfully!")
+            messagebox.showwarning("Missing Input","Please Fill all feilds")
     
     def load_stock(self,table):
 
