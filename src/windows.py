@@ -241,7 +241,7 @@ class windows:
             if row:
                 popup = Toplevel(self.root)
                 popup.title("IMEI Nos")
-                center_window(popup,350,550)
+                center_window(popup,400,550)
 
                 img = PhotoImage(file=resource_path("assets/back.png"))
                 smaller_img = img.subsample(30, 30)
@@ -252,10 +252,20 @@ class windows:
 
                 model = row[2]
                 ttk.Label(popup,text=f"Model:{model}",font=("Helvetica", 16, "bold")).pack(pady=7)
+                sup_entry_frame = Frame(popup)
+                sup_entry_frame.pack(pady=10)
+
+                grid_label(sup_entry_frame,"Supplier Name:",0,0,12)
+                suppliers = self.db.get_suppliers(row)
+                pay_ty_entry = ttk.Combobox(sup_entry_frame, values=suppliers)
+                pay_ty_entry.grid(row=0,column=1,padx=5,pady=10)
+                pay_ty_entry.set("Select a Supplier")
+
+                ttk.Button(sup_entry_frame,text="Show IMEI",cursor="hand2",command=lambda:self.db.load_imei(row,table_imei,pay_ty_entry)).grid(row=0,column=2,padx=5)
+
                 table_imei_columns = ["S.NO","IMEI NO"]
                 table_imei_width = [50,150]
                 table_imei = create_treeview(popup,table_imei_columns,table_imei_width,20)
-                self.db.load_imei(row,table_imei)        
 
             else:
                 messagebox.showerror("Empty Input","Please Select a Mobile model")
@@ -328,12 +338,13 @@ class windows:
         supplier_cnic_entry.grid(row=3,column=3,padx=5,pady=10)
 
         ttk.Label(entry_frame,text="IMEI",font=font).grid(row=4,column=0,padx=5,pady=10)
-        imei_button = ttk.Button(entry_frame,text="Enter IMEI Nos",cursor="hand2",command=lambda:imei_entry(quantity_entry))
+        imei_button = ttk.Button(entry_frame,text="Enter IMEI Nos",cursor="hand2",command=lambda:imei_entry(quantity_entry,supplier_name_entry))
         imei_button.grid(row=4,column=1,padx=5,pady=10)
 
-        def imei_entry(quantity):
+        def imei_entry(quantity,supplier):
             quan = quantity.get()
-            if quan:
+            supplier_name = supplier_name_entry.get()
+            if quan and supplier_name: 
                 popup = Toplevel(self.root)
                 center_window(popup, 250, 350)
                 popup.iconbitmap(resource_path("assets/point-of-sale.ico"))
@@ -385,7 +396,7 @@ class windows:
                         elif not isinstance(entry,ttk.Label):
                                 imei.append(entry.get())
 
-                    self.imeis[supplier_name_entry.get()] = imei
+                    self.imeis[supplier_name] = imei
                     
 
                     popup.destroy()

@@ -138,11 +138,32 @@ class database:
             ))
             s_no+=1
 
-    def load_imei(self,row,table):
-        
-        for ro in table.get_children():
-            table.delete(ro)
+    def load_imei(self,row,table,supplier):
+        suply = supplier.get()
+        if suply:
+            for ro in table.get_children():
+                table.delete(ro)
 
+            filter = {
+                "model":row[2],
+                "storage":row[3],
+                "condition":row[5]
+            }
+
+            data = self.stock.find_one(filter)
+            imeis = data.get("imei_nos")
+            suply_imei = imeis[suply]
+            s_no =1
+            for entry in suply_imei:
+                table.insert("", END,values=(
+                    s_no,
+                    entry
+                    ))
+                s_no+=1
+        else:
+            messagebox.showwarning("Missing Input","Please Select a supplier")                 
+
+    def get_suppliers(self,row):
         filter = {
             "model":row[2],
             "storage":row[3],
@@ -150,14 +171,14 @@ class database:
         }
 
         data = self.stock.find_one(filter)
-        imeis = data.get("imei_nos")
-        s_no =1
-        for entry in imeis:
-            table.insert("", END,values=(
-                s_no,
-                entry
-                ))
-            
+        names = []
+        if data:
+            name_data = data.get("suppliers", {})
+            for supplier in name_data.values():   
+                names.append(supplier.get("name"))
+
+        return names
+    
     def save_invoice(self,data,customer,invoice_info,win,on_save=None):
 
         details = {
