@@ -179,79 +179,6 @@ class database:
 
         return names
     
-    # def save_invoice(self,data,customer,invoice_info,win,on_save=None):
-
-    #     details = {
-    #         "invoice_no":invoice_info["invoice_no"],
-    #         "inv_date": invoice_info["date"],
-    #         "inv_time":invoice_info["time"],
-    #         "customer_name":customer["name"],
-    #         "customer_cnic":customer["cnic"],
-    #         "payment_type": customer["payment_type"],
-    #         "down_payment":customer["down_payment"],
-    #         "due_date": customer["due_date"],
-    #         "purchased_items": data,
-    #         "total_inv_amount":invoice_info["total_inv_amount"],
-    #         "profit":invoice_info["profit"]
-
-    #     }
-
-    #     details_cr = {
-    #         "invoice_no":invoice_info["invoice_no"],
-    #         "inv_date": invoice_info["date"],
-    #         "inv_time":invoice_info["time"],
-    #         "customer_name":customer["name"],
-    #         "customer_cnic":customer["cnic"],
-    #         "payment_type": customer["payment_type"],
-    #         "down_payment":customer["down_payment"],
-    #         "due_date": customer["due_date"],
-    #         "purchased_items": data,
-    #         "total_amount_paid":customer["down_payment"],
-    #         "balance": customer["balance"],
-    #         "status":"unsettled"
-    #     }
-
-    #     for items in data:
-    #         filter1 ={
-    #             "model":items["model"],
-    #             "storage":items["storage"],
-    #             "condition":items["condition"]
-    #         }
-    #         stck_find = self.stock.find_one(filter1)
-    #         quan = stck_find.get("quantity") - 1
-    #         imeis = stck_find.get("imei_nos")
-    #         imeis.remove(items["imei"])
-    #         if quan == 0:
-    #             self.stock.delete_one(filter1)
-    #         else:
-    #             self.stock.update_one(filter1,{"$set":{"quantity":quan,"imei_nos":imeis}})
-
-    #     self.sales.insert_one(details)
-
-    #     if customer["payment_type"] == "Credit Sale":
-    #         self.credit_accounts_history.insert_one(details_cr)
-
-    #         filter = {
-    #             "customer_name":customer["name"],
-    #             "customer_cnic":customer["cnic"]
-    #         }
-
-    #         acc_find = self.credit_accounts.find_one(filter)
-    #         if acc_find:
-    #             self.credit_accounts.update_one(filter,{"$set":{"down_payment":int(acc_find["down_payment"])+int(customer["down_payment"]),
-    #                                                               "total_amount_paid":int(acc_find["total_amount_paid"])+int(customer["down_payment"]),
-    #                                                               "balance":int(acc_find["balance"])+customer["balance"],
-    #                                                               "due_date":customer["due_date"]}})
-    #         else:
-    #             self.credit_accounts.insert_one(details_cr) 
-
-            
-        
-    #     messagebox.showinfo("Success","Invoice Saved successfuly!")
-    #     if on_save:
-    #         on_save()
-    #     win.destroy()
-
     def save_invoice(self, data, customer, invoice_info, win, on_save=None):
 
         details = {
@@ -283,7 +210,6 @@ class database:
             "status": "unsettled"
         }
 
-        # 🔥 STOCK UPDATE (FIXED IMEI DELETION)
         for items in data:
             filter1 = {
                 "model": items["model"],
@@ -299,17 +225,14 @@ class database:
             imei_to_delete = items["imei"]
             suppliers_imeis = stck_find.get("imei_nos", {})
 
-            # 🔍 find supplier and remove IMEI
             for supplier, imei_list in suppliers_imeis.items():
                 if imei_to_delete in imei_list:
 
-                    # remove IMEI from correct supplier
                     self.stock.update_one(
                         {"_id": stck_find["_id"]},
                         {"$pull": {f"imei_nos.{supplier}": imei_to_delete}}
                     )
 
-                    # 🔥 OPTIONAL: remove supplier key if empty
                     if len(imei_list) == 1:
                         self.stock.update_one(
                             {"_id": stck_find["_id"]},
@@ -318,11 +241,9 @@ class database:
 
                     break
 
-            # 📉 update quantity safely
             updated_doc = self.stock.find_one({"_id": stck_find["_id"]})
             updated_imeis = updated_doc.get("imei_nos", {})
 
-            # recalculate quantity from IMEIs (BEST PRACTICE)
             new_quantity = sum(len(v) for v in updated_imeis.values())
 
             if new_quantity <= 0:
@@ -333,10 +254,8 @@ class database:
                     {"$set": {"quantity": new_quantity}}
                 )
 
-        # 💾 SAVE SALE
         self.sales.insert_one(details)
 
-        # 💳 CREDIT HANDLING
         if customer["payment_type"] == "Credit Sale":
             self.credit_accounts_history.insert_one(details_cr)
 
@@ -362,7 +281,6 @@ class database:
             else:
                 self.credit_accounts.insert_one(details_cr)
 
-        # ✅ UI FEEDBACK
         messagebox.showinfo("Success", "Invoice Saved successfully!")
 
         if on_save:
