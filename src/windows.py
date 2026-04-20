@@ -343,7 +343,7 @@ class windows:
 
         def imei_entry(quantity,supplier):
             quan = quantity.get()
-            supplier_name = supplier_name_entry.get()
+            supplier_name = supplier.get()
             if quan and supplier_name: 
                 popup = Toplevel(self.root)
                 center_window(popup, 250, 350)
@@ -495,8 +495,10 @@ class windows:
         entry_frame.pack(pady=10)
 
         grid_label(entry_frame,"Date",0,0,11)
-        now = datetime.now()
-        grid_label(entry_frame,f"{now.strftime("%Y-%m-%d")}",1,0,11)
+        date_entry = DateEntry(entry_frame, width=12, background='darkblue',
+                       foreground='white', borderwidth=2,date_pattern="yyyy-mm-dd")
+        date_entry.grid(row=0,column=1,padx=5,pady=10)
+        date_entry.set_date(date.today()) 
 
         customer_names = []
         customer_cnics = []
@@ -581,8 +583,8 @@ class windows:
             data = {}
 
             try:
-                now = datetime.now()
-                date = now.strftime("%Y-%m-%d")
+                
+                date = date_entry.get()
                 cus_name = customer_name_entry.get()
                 cus_cnic = customer_cnic_entry.get()
                 amount_receivable = amount_recev_entry.get()
@@ -644,13 +646,16 @@ class windows:
         inv_no_label = ttk.Label(right_frame,text=inv_no,font=("Helvetica",12,"bold"))
         inv_no_label.grid(column=1,row=1,padx=5,pady=7)
 
+        text = "Optional"
         grid_label(right_frame,"Customer Name:",0,2,12)
         cus_name_entry = ttk.Entry(right_frame,font=("Helvetica",12,"bold"))
         cus_name_entry.grid(row=2,column=1,padx=5)
+        add_placeholder(cus_name_entry,text)
 
         grid_label(right_frame,"Customer CNIC:",0,3,12)
         cus_cnic_entry = ttk.Entry(right_frame,font=("Helvetica",12,"bold"))
         cus_cnic_entry.grid(row=3,column=1,padx=5)
+        add_placeholder(cus_cnic_entry,text)
 
         grid_label(right_frame,"Payment Type:",0,4,12)
         types = ["Paid in Full","Credit Sale"]
@@ -665,12 +670,12 @@ class windows:
         dw_pay_entry.grid(row=5,column=1,padx=5)
         
         nt_du_dt_label = ttk.Label(right_frame,text="Due Date:",font=("Helvetica",12,"bold"),foreground="grey")
-        nt_du_dt_entry = ttk.Entry(right_frame,font=("Helvetica",12,"bold"),state=["disabled"])
+        nt_du_dt_entry = DateEntry(right_frame, width=12, background='darkblue',
+                       foreground='white', borderwidth=2,date_pattern="yyyy-mm-dd",state=["disabled"])
+        nt_du_dt_entry.set_date(date.today()) 
 
-        text = "(yyyy-mm-dd)"
         nt_du_dt_label.grid(row=6,column=0,padx=5,pady=7)
         nt_du_dt_entry.grid(row=6,column=1,padx=5)
-        add_placeholder(nt_du_dt_entry,text)
 
         def cr_sale_input(event):
             type = pay_ty_entry.get()
@@ -680,7 +685,6 @@ class windows:
 
                 nt_du_dt_label.configure(foreground="black")
                 nt_du_dt_entry.configure(state=["!disabled"])
-                add_placeholder(nt_du_dt_entry,text)
             else:
                 dw_pay_label.configure(foreground="grey")
                 dw_pay_entry.configure(state=["disabled"])
@@ -705,63 +709,78 @@ class windows:
 
         def load_data():
             pipeline = [
-                {
-                    "$group": {
-                        "_id": {
-                            "model": "$model",
-                            "storage": "$storage",
-                            "condition": "$condition"
-                        },
-                        "imeis": {"$push": "$imei_nos"}
-                    }
-                },
-                {
-                    "$project": {
-                        "_id": 1,
-                        "imeis": {
-                            "$reduce": {
-                                "input": "$imeis",
-                                "initialValue": [],
-                                "in": {
-                                    "$concatArrays": ["$$value", "$$this"]
+                        {
+                            "$addFields": {
+                                "imei_nos": {
+                                    "$reduce": {
+                                        "input": {
+                                            "$map": {
+                                                "input": {"$objectToArray": "$imei_nos"},
+                                                "as": "item",
+                                                "in": "$$item.v"   # extract each supplier's array
+                                            }
+                                        },
+                                        "initialValue": [],
+                                        "in": {"$concatArrays": ["$$value", "$$this"]}
+                                    }
                                 }
                             }
-                        }
-                    }
-                },
-                {
-                    "$group": {
-                        "_id": {
-                            "model": "$_id.model",
-                            "storage": "$_id.storage"
                         },
-                        "conditions": {
-                            "$push": {
-                                "condition": "$_id.condition",
-                                "imeis": "$imeis"
+                        {
+                            "$group": {
+                                "_id": {
+                                    "model": "$model",
+                                    "storage": "$storage",
+                                    "condition": "$condition"
+                                },
+                                "imeis": {"$push": "$imei_nos"}
+                            }
+                        },
+                        {
+                            "$project": {
+                                "_id": 1,
+                                "imeis": {
+                                    "$reduce": {
+                                        "input": "$imeis",
+                                        "initialValue": [],
+                                        "in": {"$concatArrays": ["$$value", "$$this"]}
+                                    }
+                                }
+                            }
+                        },
+                        {
+                            "$group": {
+                                "_id": {
+                                    "model": "$_id.model",
+                                    "storage": "$_id.storage"
+                                },
+                                "conditions": {
+                                    "$push": {
+                                        "condition": "$_id.condition",
+                                        "imeis": "$imeis"
+                                    }
+                                }
+                            }
+                        },
+                        {
+                            "$group": {
+                                "_id": "$_id.model",
+                                "storages": {
+                                    "$push": {
+                                        "storage": "$_id.storage",
+                                        "conditions": "$conditions"
+                                    }
+                                }
+                            }
+                        },
+                        {
+                            "$project": {
+                                "_id": 0,
+                                "model": "$_id",
+                                "storages": 1
                             }
                         }
-                    }
-                },
-                {
-                    "$group": {
-                        "_id": "$_id.model",
-                        "storages": {
-                            "$push": {
-                                "storage": "$_id.storage",
-                                "conditions": "$conditions"
-                            }
-                        }
-                    }
-                },
-                {
-                    "$project": {
-                        "_id": 0,
-                        "model": "$_id",
-                        "storages": 1
-                    }
-                }
-            ]
+                    ]
 
             data = list(self.db.stock.aggregate(pipeline))
             return data
@@ -824,15 +843,14 @@ class windows:
             }
 
             price = (self.db.stock.find_one(filter)).get("sell_price")
-            total_label_in.configure(text=price)
 
         model_entry.bind("<<ComboboxSelected>>", on_model)
         storage_entry.bind("<<ComboboxSelected>>", on_storage)
         condition_entry.bind("<<ComboboxSelected>>", on_condition)
 
         grid_label(left_frame,"Price",2,1,11)
-        total_label_in = ttk.Label(left_frame,text=0.00,font=("Helvetica",12,"bold"))
-        total_label_in.grid(column=3,row=1,padx=5,pady=7)
+        total_entry_in = ttk.Entry(left_frame,font=("Helvetica",11,"bold"))
+        total_entry_in.grid(column=3,row=1,padx=5,pady=7)
         
 
         def add():
@@ -840,15 +858,10 @@ class windows:
             storage = storage_entry.get()
             condition = condition_entry.get()
             imei = imei_entry.get()
-            if model == "Select Model" or storage == "Select Storage" or condition == "Select Condition" or imei == "Select IMEI NO":
+            price = total_entry_in.get()
+            if model == "Select Model" or storage == "Select Storage" or condition == "Select Condition" or imei == "Select IMEI NO" or not price:
                 messagebox.showerror("Missing Fields","Please fill the missing feilds")
             else:
-                filter = {
-                    "model": model,
-                    "storage":storage,
-                    "condition":condition
-                }
-                price = (self.db.stock.find_one(filter)).get("sell_price")
 
                 inv_table.insert("",END,values=(
                     len(inv_table.get_children())+1,
@@ -864,6 +877,7 @@ class windows:
                 storage_entry.set("Select Storage")
                 condition_entry.set("Select Condition")
                 imei_entry.set("Select IMEI NO")
+                total_entry_in.delete(0,'end')
                 
         ttk.Button(left_frame,text="Add",cursor="hand2",style="Module.TButton",command=add).grid(row=1,column=4,columnspan=2,padx=5)
         
@@ -907,14 +921,14 @@ class windows:
             inv_no_label.configure(text=inv_no)
 
             total_label.configure(text=0.00)
-            total_label_in.configure(text=0.00)
+            total_entry_in.delete(0,'end')
 
         def save():
-            if not cus_name_entry.get() or not cus_cnic_entry.get() or pay_ty_entry.get() == "Select type":
+            if pay_ty_entry.get() == "Select type":
                 messagebox.showerror("Missing Feilds","Please fill all the fields")
                 return
             if pay_ty_entry.get() == "Credit Sale":
-                if not dw_pay_entry.get() or nt_du_dt_entry.get() == "(yyyy-mm-dd)":
+                if not dw_pay_entry.get() or nt_du_dt_entry.get() == "(yyyy-mm-dd)" or cus_name_entry.get() =="Optional" or cus_cnic_entry.get() == "Optional":
                     messagebox.showerror("Missing Feilds","Please fill all the fields")
                     return
             
@@ -928,6 +942,16 @@ class windows:
             else:
                 dw_pay = 0
                 nt_du_dt = "Nill"
+            
+            if cus_name_entry.get() =="Optional":
+                customer_name = "Nill"
+            else:
+                customer_name = cus_name_entry.get()
+
+            if cus_cnic_entry.get() =="Optional":
+                customer_cnic = "Nill"
+            else:
+                customer_cnic = cus_cnic_entry.get()
 
             for entry in inv_table.get_children():
                 values = inv_table.item(entry)["values"]
@@ -948,13 +972,14 @@ class windows:
                     "condition":values[4]
                 }
                 stock_find = self.db.stock.find_one(filter)
-                profit += (int(stock_find.get("sell_price"))-int(stock_find.get("purchase_price")))
-                balance += (int(stock_find.get("sell_price"))-int(dw_pay))
+
+                profit += (int(values[5])-int(stock_find.get("purchase_price")))
+                balance += (int(values[5])-int(dw_pay))
                 
 
             customer = {
-                "name" : cus_name_entry.get(),
-                "cnic": cus_cnic_entry.get(),
+                "name" : customer_name,
+                "cnic": customer_cnic,
                 "payment_type": pay_ty_entry.get(),
                 "down_payment": dw_pay,
                 "due_date": nt_du_dt,
