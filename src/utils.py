@@ -1,5 +1,5 @@
 from tkinter import *
-from tkinter import ttk
+from tkinter import ttk, messagebox
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4
@@ -70,7 +70,6 @@ def get_selected(tree):
     selected_item = tree.selection()
 
     if not selected_item:
-        print("No row selected")
         return
 
     row = tree.item(selected_item)["values"]
@@ -262,3 +261,33 @@ def env_resource_path(filename):
     if hasattr(sys, '_MEIPASS'):
         return os.path.join(sys._MEIPASS, filename)
     return os.path.join(os.path.abspath("."), filename)
+
+def remove_stock(table,supplier_name,db,filter):
+    selected = table.selection()
+
+    if not selected:
+        messagebox.showerror("No Selection", "Please select an IMEI to remove")
+        return
+
+    confirm = messagebox.askyesno("Remove Stock","Do you want to Remove the item from inventory?")
+
+    if confirm:
+        values = table.item(selected)["values"]
+        data =  db.find_one(filter)
+        quantity = data.get("quantity")
+        if quantity == 1:
+            db.delete_one(filter)
+        else:
+            quantity -=1
+            imeis = data.get("imei_nos")
+            imeis[supplier_name].remove(str(values[1]))
+            db.update_one(filter,{"$set":{"quantity":quantity,
+                                          "imei_nos":imeis}})
+
+
+        table.delete(selected)     
+
+    for index, row in enumerate(table.get_children(), start=1):
+        values = list(table.item(row, "values"))
+        values[0] = index
+        table.item(row, values=values)

@@ -1,7 +1,7 @@
 from tkinter import ttk,messagebox,Frame,Toplevel,PhotoImage,END,Canvas
 from tkinter import *
 from src.database import database
-from src.utils import center_window,destroy_widgets,create_treeview,get_selected,grid_label,grid_create_treeview,print_invoice,add_placeholder,resource_path
+from src.utils import center_window,destroy_widgets,create_treeview,get_selected,grid_label,grid_create_treeview,print_invoice,add_placeholder,resource_path,remove_stock
 from datetime import date,datetime
 from tkcalendar import DateEntry
 
@@ -246,7 +246,11 @@ class windows:
                 img = PhotoImage(file=resource_path("assets/back.png"))
                 smaller_img = img.subsample(30, 30)
 
-                bk_btn = ttk.Button(popup,image=smaller_img,cursor="hand2",command=lambda:popup.destroy())
+                def on_close():
+                    self.db.load_stock(table_stocks)
+                    popup.destroy()
+
+                bk_btn = ttk.Button(popup,image=smaller_img,cursor="hand2",command=on_close)
                 bk_btn.image = smaller_img
                 bk_btn.pack(anchor="nw", padx=10, pady=10)
 
@@ -266,6 +270,14 @@ class windows:
                 table_imei_columns = ["S.NO","IMEI NO"]
                 table_imei_width = [50,150]
                 table_imei = create_treeview(popup,table_imei_columns,table_imei_width,20)
+                
+                filter={
+                    "model":str(row[2]),
+                    "storage":str(row[3]),
+                    "condition":str(row[5])
+                }
+
+                table_imei.bind("<Double-1>", lambda e: remove_stock(table_imei,pay_ty_entry.get(),self.db.stock,filter))
 
             else:
                 messagebox.showerror("Empty Input","Please Select a Mobile model")
