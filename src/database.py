@@ -145,9 +145,9 @@ class database:
                 table.delete(ro)
 
             filter = {
-                "model":row[2],
-                "storage":row[3],
-                "condition":row[5]
+                "model":str(row[2]),
+                "storage":str(row[3]),
+                "condition":str(row[5])
             }
 
             data = self.stock.find_one(filter)
@@ -165,17 +165,17 @@ class database:
 
     def get_suppliers(self,row):
         filter = {
-            "model":row[2],
-            "storage":row[3],
-            "condition":row[5]
+            "model":str(row[2]),
+            "storage":str(row[3]),
+            "condition":str(row[5])
         }
 
         data = self.stock.find_one(filter)
         names = []
         if data:
-            name_data = data.get("suppliers", {})
-            for supplier in name_data.values():   
-                names.append(supplier.get("name"))
+            name_data = data.get("imei_nos")
+            for supplier in name_data.keys():   
+                names.append(supplier)
 
         return names
     
@@ -212,9 +212,9 @@ class database:
 
         for items in data:
             filter1 = {
-                "model": items["model"],
-                "storage": items["storage"],
-                "condition": items["condition"]
+                "model": str(items["model"]),
+                "storage": str( items["storage"]),
+                "condition": str(items["condition"])
             }
 
             stck_find = self.stock.find_one(filter1)

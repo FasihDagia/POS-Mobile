@@ -967,9 +967,9 @@ class windows:
 
                     #profit calculator
                 filter = {
-                    "model":values[2],
-                    "storage":values[3],
-                    "condition":values[4]
+                    "model":str(values[2]),
+                    "storage":str(values[3]),
+                    "condition":str(values[4])
                 }
                 stock_find = self.db.stock.find_one(filter)
 
