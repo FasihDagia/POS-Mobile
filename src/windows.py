@@ -278,6 +278,7 @@ class windows:
                 }
 
                 table_imei.bind("<Double-1>", lambda e: remove_stock(table_imei,pay_ty_entry.get(),self.db.stock,filter))
+                popup.protocol("WM_DELETE_WINDOW", on_close)
 
             else:
                 messagebox.showerror("Empty Input","Please Select a Mobile model")
