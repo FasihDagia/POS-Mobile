@@ -289,7 +289,7 @@ class windows:
             else:
                 messagebox.showerror("Empty Input","Please Select a Mobile model")
 
-        def remove_stock():
+        def remove_stock_1():
             selected = table_stocks.selection()
             row = table_stocks.item(selected)["values"]
             filter1 = {"model":str(row[2])}
@@ -297,7 +297,7 @@ class windows:
             if is_mobile == False:
                 confirm = messagebox.askyesno("Remove Stock","Do you want to Remove the item from inventory?")
                 if confirm:
-                    self.db.stock.delete_one(filter)
+                    self.db.stock.delete_one(filter1)
                     table_stocks.delete(selected)     
 
                     for index, row in enumerate(table_stocks.get_children(), start=1):
@@ -315,6 +315,8 @@ class windows:
         table_stock_widths= [50,100,120,100,100,120,120,150] 
         table_stocks = create_treeview(self.root, table_stock_columns, table_stock_widths,20)
         self.db.load_stock(table_stocks)
+
+        table_stocks.bind("<Double-1>", lambda e: remove_stock_1())
 
     def stock_entry(self):
 
