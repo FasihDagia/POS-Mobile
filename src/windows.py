@@ -1,7 +1,7 @@
-from tkinter import ttk,messagebox,Frame,Toplevel,PhotoImage,END,Canvas
+from tkinter import ttk,messagebox,Frame,Toplevel,PhotoImage,END,Canvas,BooleanVar,Checkbutton
 from tkinter import *
 from src.database import database
-from src.utils import center_window,destroy_widgets,create_treeview,get_selected,grid_label,grid_create_treeview,print_invoice,add_placeholder,resource_path,remove_stock
+from src.utils import center_window,destroy_widgets,create_treeview,get_selected,grid_label,grid_create_treeview,print_invoice,add_placeholder,resource_path,remove_stock,validate_frame
 from datetime import date,datetime
 from tkcalendar import DateEntry
 
@@ -320,39 +320,56 @@ class windows:
         date_entry.grid(row=0,column=1,padx=5,pady=10)
         date_entry.set_date(date.today()) 
 
-        ttk.Label(entry_frame,text="Model",font=font).grid(row=0,column=2,padx=5,pady=10)
+        ttk.Label(entry_frame,text="Product",font=font).grid(row=0,column=2,padx=5,pady=10)
         model_entry = ttk.Entry(entry_frame,font=font)
         model_entry.grid(row=0,column=3,padx=5,pady=10)
 
-        ttk.Label(entry_frame,text="Storage",font=font).grid(row=1,column=0,padx=5,pady=10)
-        storage_entry = ttk.Entry(entry_frame,font=font)
-        storage_entry.grid(row=1,column=1,padx=5,pady=10)
+        ttk.Label(entry_frame,text="Supplier Name:",font=font).grid(row=1,column=0,padx=5,pady=10)
+        supplier_name_entry = ttk.Entry(entry_frame,font=font)
+        supplier_name_entry.grid(row=1,column=1,padx=5,pady=10)
 
-        ttk.Label(entry_frame,text="Condition",font=font).grid(row=1,column=2,padx=5,pady=10)
-        conditions = ["New","Used"]
-        condition_entry = ttk.Combobox(entry_frame, values=conditions)
-        condition_entry.grid(row=1,column=3,padx=5,pady=10)
-        condition_entry.set("Select a condition")
-
+        ttk.Label(entry_frame,text="Supplier CNIC:",font=font).grid(row=1,column=2,padx=5,pady=10)
+        supplier_cnic_entry = ttk.Entry(entry_frame,font=font)
+        supplier_cnic_entry.grid(row=1,column=3,padx=5,pady=10)
+        
         ttk.Label(entry_frame,text="Quantity",font=font).grid(row=2,column=0,padx=5,pady=10)
         quantity_entry = ttk.Entry(entry_frame,font=font)
         quantity_entry.grid(row=2,column=1,padx=5,pady=10)
-
+        
         ttk.Label(entry_frame,text="Purchase Price per Unit",font=font).grid(row=2,column=2,padx=5,pady=10)
         purchase_price_entry = ttk.Entry(entry_frame,font=font)
         purchase_price_entry.grid(row=2,column=3,padx=5,pady=10)
+        
+        def check_imei_enable():
+            en_imei_entry = en_imei_entry_var.get()
+            if en_imei_entry == True:
+                imei_button.state(["!disabled"])
+                storage_entry.state(["!disabled"])
+                condition_entry.state(["!disabled"])
+            else:
+                imei_button.state(["disabled"])
+                storage_entry.state(["disabled"])
+                condition_entry.state(["disabled"])
 
-        ttk.Label(entry_frame,text="Supplier Name:",font=font).grid(row=3,column=0,padx=5,pady=10)
-        supplier_name_entry = ttk.Entry(entry_frame,font=font)
-        supplier_name_entry.grid(row=3,column=1,padx=5,pady=10)
+        ttk.Label(entry_frame,text="Enable IMEI:",font=font).grid(row=3,column=0,padx=5,pady=10)
+        en_imei_entry_var = BooleanVar(value=False)
+        enable_imei_entry = Checkbutton(entry_frame,text="",variable=en_imei_entry_var,onvalue=True,offvalue=False,command=check_imei_enable)
+        enable_imei_entry.grid(row=3, column=1, padx=5, pady=10)
 
-        ttk.Label(entry_frame,text="Supplier CNIC:",font=font).grid(row=3,column=2,padx=5,pady=10)
-        supplier_cnic_entry = ttk.Entry(entry_frame,font=font)
-        supplier_cnic_entry.grid(row=3,column=3,padx=5,pady=10)
+        ttk.Label(entry_frame,text="Storage",font=font).grid(row=3,column=2,padx=5,pady=10)
+        storage_entry = ttk.Entry(entry_frame,font=font,state=["disabled"])
+        storage_entry.grid(row=3,column=3,padx=5,pady=10)
 
-        ttk.Label(entry_frame,text="IMEI",font=font).grid(row=4,column=0,padx=5,pady=10)
+        ttk.Label(entry_frame,text="Condition",font=font).grid(row=4,column=0,padx=5,pady=10)
+        conditions = ["New","Used"]
+        condition_entry = ttk.Combobox(entry_frame, values=conditions,state=["disabled"])
+        condition_entry.grid(row=4,column=1,padx=5,pady=10)
+        condition_entry.set("Select a condition")
+
+        ttk.Label(entry_frame,text="IMEI",font=font).grid(row=4,column=2,padx=5,pady=10)
         imei_button = ttk.Button(entry_frame,text="Enter IMEI Nos",cursor="hand2",command=lambda:imei_entry(quantity_entry,supplier_name_entry))
-        imei_button.grid(row=4,column=1,padx=5,pady=10)
+        imei_button.grid(row=4,column=3,padx=5,pady=10)
+        imei_button.state(["disabled"])
 
         def imei_entry(quantity,supplier):
             quan = quantity.get()
@@ -418,12 +435,45 @@ class windows:
             else:
                 messagebox.showerror("No Quantity","Plese Enter Quantity")
 
-        ttk.Button(self.root,text="Add Stock",
-                   cursor="hand2",style="Module.TButton",
-                   command=lambda:self.db.add_stock(model_entry.get(),storage_entry.get(),
-                                                    condition_entry.get(),date_entry.get(),
-                                                    int(quantity_entry.get()),purchase_price_entry.get(),
-                                                    self.imeis,supplier_name_entry.get(),supplier_cnic_entry.get())).pack(pady=10)
+        ttk.Button(self.root,text="Add Stock",cursor="hand2",style="Module.TButton",command=lambda:add_stock()).pack(pady=10)
+        
+        def reset_ui():
+            for widget in entry_frame.winfo_children():
+                if isinstance(widget, (Entry, ttk.Entry)):
+                    widget.delete(0, 'end')
+
+            date_entry.set_date(date.today()) 
+            en_imei_entry_var.set(False)
+            condition_entry.set("Select a condition")
+            imei_button.state(["disabled"])
+            storage_entry.state(["disabled"])
+            condition_entry.state(["disabled"])
+
+        def add_stock():
+            date =  date_entry.get()
+            product = model_entry.get()
+            supplier_name = supplier_name_entry.get()
+            supplier_cnic = supplier_cnic_entry.get()  
+            quantity = int(quantity_entry.get())
+            purchase_price = purchase_price_entry.get()
+            is_mobile = en_imei_entry_var.get()
+            if is_mobile == True:
+                storage = storage_entry.get() 
+                condition = condition_entry.get()
+                imeis = self.imeis
+            else:
+                storage ="Nill"
+                condition = "Nill"
+                imeis = None
+
+            validate = validate_frame(entry_frame)
+            if validate == False or condition == "Select a condition":
+                messagebox.showwarning("Missing Input","Please Fill all feilds")
+                return
+            else:   
+                self.db.add_stock(product,storage,condition,date,quantity,purchase_price,imeis,supplier_name,supplier_cnic,is_mobile)
+                reset_ui()
+
 
     def credit_acc(self):
         
@@ -1032,7 +1082,7 @@ class windows:
         ttk.Label(main, text="The Name of Trust", font=("Helvetica", 14, "bold"), background="white").pack()
 
         ttk.Label(main,
-            text="Shop # 42, Street # 11, Block-B, Baldia Complex, Mirpurkhas",background="white",font=("Helvetica",12)).pack()
+            text="Shop # 242, Street # 11, Block-B, Baldia Complex, Mirpurkhas",background="white",font=("Helvetica",12)).pack()
 
         Label(main, text="Phone: 0336-0601994", background="white",font=("Helvetica",12)).pack()
 

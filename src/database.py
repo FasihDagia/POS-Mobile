@@ -33,7 +33,7 @@ class database:
             root.destroy()
             sys.exit()
             
-        self.db = self.client["mobile_shop"]
+        self.db = self.client["test"]
         self.stock = self.db["stock"]
         self.credit_accounts= self.db["credit_accounts"]
         self.credit_accounts_history = self.db["credit_accounts_history"]
@@ -60,12 +60,12 @@ class database:
         stored = self.get_password()
         return stored == self.hash_password(password)
 
-    def add_stock(self, model, storage, condition, purchase_date, quantity, purchase_price,imei_nos,supplier_name,supplier_cnic):
+    def add_stock(self, model, storage, condition, purchase_date, quantity, purchase_price,imei_nos,supplier_name,supplier_cnic,is_mobile):
 
-        if model and storage and condition and purchase_date and quantity and purchase_price and len(imei_nos[supplier_name]) == int(quantity) and supplier_cnic and supplier_name:
             data = {
                 "purchase_date": purchase_date,
                 "model": model,
+                "is_mobile":is_mobile,
                 "storage": storage,
                 "condition": condition,
                 "quantity": quantity,
@@ -89,13 +89,14 @@ class database:
                 imei = exist.get("imei_nos")
                 quantity = quantity+ exist["quantity"]
                 suppliers = exist.get("suppliers")
-                if supplier_name in imei.keys():
-                    sup_imeis = imei[supplier_name]
-                    for imeis in imei_nos[supplier_name]:
-                        sup_imeis.append(imeis)
-                    imei[supplier_name] = sup_imeis
-                else:
-                    imei[supplier_name] = imei_nos[supplier_name]  
+                if imei:
+                    if supplier_name in imei.keys():
+                        sup_imeis = imei[supplier_name]
+                        for imeis in imei_nos[supplier_name]:
+                            sup_imeis.append(imeis)
+                        imei[supplier_name] = sup_imeis
+                    else:
+                        imei[supplier_name] = imei_nos[supplier_name]  
                 new_supplier = data["suppliers"]["1"]
                 exists = any(s["cnic"] == new_supplier["cnic"] for s in suppliers.values())
 
@@ -110,12 +111,10 @@ class database:
                 self.stock.update_one(filter,{"$set":data})
             else:
                 self.stock.insert_one(data)
-
-            imei_nos.clear()
+            if imei_nos:
+                imei_nos.clear()
 
             messagebox.showinfo("Success","Stock added successfully!")
-        else:
-            messagebox.showwarning("Missing Input","Please Fill all feilds")
     
     def load_stock(self,table):
 

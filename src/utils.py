@@ -150,12 +150,12 @@ def print_invoice(data, customer, invoice_info):
     name="Center",
     parent=styles["Normal"],
     alignment=1   # 0=left, 1=center, 2=right
-)
+    )
     content = []
     # ================= COMPANY HEADER =================
     content.append(Paragraph("<b>MH POINT</b>", styles["Title"]))
     content.append(Paragraph("<b>The Name of Trust</b>", styles["Title"]))
-    content.append(Paragraph("Shop # 42, Street # 11, Block-B, Baldia Complex, Mirpurkhas", center_style))
+    content.append(Paragraph("Shop # 242, Street # 11, Block-B, Baldia Complex, Mirpurkhas", center_style))
     content.append(Paragraph("Phone: 0336-0601994", center_style))
     content.append(Spacer(1, 20))
 
@@ -291,3 +291,11 @@ def remove_stock(table,supplier_name,db,filter):
         values = list(table.item(row, "values"))
         values[0] = index
         table.item(row, values=values)
+
+def validate_frame(frame):
+    for child in frame.winfo_children():
+        if isinstance(child, ttk.Entry):
+            if child.state() == ["!disabled"]:
+                if not child.get().strip():
+                    return False
+    return True
