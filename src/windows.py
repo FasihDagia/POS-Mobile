@@ -289,6 +289,25 @@ class windows:
             else:
                 messagebox.showerror("Empty Input","Please Select a Mobile model")
 
+        def remove_stock():
+            selected = table_stocks.selection()
+            row = table_stocks.item(selected)["values"]
+            filter1 = {"model":str(row[2])}
+            is_mobile = self.db.stock.find_one(filter1)["is_mobile"]
+            if is_mobile == False:
+                confirm = messagebox.askyesno("Remove Stock","Do you want to Remove the item from inventory?")
+                if confirm:
+                    self.db.stock.delete_one(filter)
+                    table_stocks.delete(selected)     
+
+                    for index, row in enumerate(table_stocks.get_children(), start=1):
+                        values = list(table_stocks.item(row, "values"))
+                        values[0] = index
+                        table_stocks.item(row, values=values)
+                    messagebox.showinfo("Success","Successfully removed The product from Inventory")
+            else:
+                messagebox.showerror("Can't Be Deleted","The product you have selected have IMEI Nos \nCan't be deleted from here")
+
         sh_btn = ttk.Button(self.root,text="Show IMEI",width=15,cursor="hand2",style="Log.TButton",command=show_imei)
         sh_btn.pack(pady=10)
 
