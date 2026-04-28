@@ -239,54 +239,60 @@ class windows:
         def show_imei():
             row = get_selected(table_stocks)
             if row:
-                popup = Toplevel(self.root)
-                popup.title("IMEI Nos")
-                center_window(popup,400,550)
+                filter1 = {"model":str(row[2])}
+                is_mobile = self.db.stock.find_one(filter1)["is_mobile"]
 
-                img = PhotoImage(file=resource_path("assets/back.png"))
-                smaller_img = img.subsample(30, 30)
+                if is_mobile == True:
+                    popup = Toplevel(self.root)
+                    popup.title("IMEI Nos")
+                    center_window(popup,400,550)
 
-                def on_close():
-                    self.db.load_stock(table_stocks)
-                    popup.destroy()
+                    img = PhotoImage(file=resource_path("assets/back.png"))
+                    smaller_img = img.subsample(30, 30)
 
-                bk_btn = ttk.Button(popup,image=smaller_img,cursor="hand2",command=on_close)
-                bk_btn.image = smaller_img
-                bk_btn.pack(anchor="nw", padx=10, pady=10)
+                    def on_close():
+                        self.db.load_stock(table_stocks)
+                        popup.destroy()
 
-                model = row[2]
-                ttk.Label(popup,text=f"Model:{model}",font=("Helvetica", 16, "bold")).pack(pady=7)
-                sup_entry_frame = Frame(popup)
-                sup_entry_frame.pack(pady=10)
+                    bk_btn = ttk.Button(popup,image=smaller_img,cursor="hand2",command=on_close)
+                    bk_btn.image = smaller_img
+                    bk_btn.pack(anchor="nw", padx=10, pady=10)
 
-                grid_label(sup_entry_frame,"Supplier Name:",0,0,12)
-                suppliers = self.db.get_suppliers(row)
-                pay_ty_entry = ttk.Combobox(sup_entry_frame, values=suppliers)
-                pay_ty_entry.grid(row=0,column=1,padx=5,pady=10)
-                pay_ty_entry.set("Select a Supplier")
+                    model = row[2]
+                    ttk.Label(popup,text=f"Model:{model}",font=("Helvetica", 16, "bold")).pack(pady=7)
+                    sup_entry_frame = Frame(popup)
+                    sup_entry_frame.pack(pady=10)
 
-                ttk.Button(sup_entry_frame,text="Show IMEI",cursor="hand2",command=lambda:self.db.load_imei(row,table_imei,pay_ty_entry)).grid(row=0,column=2,padx=5)
+                    grid_label(sup_entry_frame,"Supplier Name:",0,0,12)
+                    suppliers = self.db.get_suppliers(row)
+                    pay_ty_entry = ttk.Combobox(sup_entry_frame, values=suppliers)
+                    pay_ty_entry.grid(row=0,column=1,padx=5,pady=10)
+                    pay_ty_entry.set("Select a Supplier")
 
-                table_imei_columns = ["S.NO","IMEI NO"]
-                table_imei_width = [50,150]
-                table_imei = create_treeview(popup,table_imei_columns,table_imei_width,20)
-                
-                filter={
-                    "model":str(row[2]),
-                    "storage":str(row[3]),
-                    "condition":str(row[5])
-                }
+                    ttk.Button(sup_entry_frame,text="Show IMEI",cursor="hand2",command=lambda:self.db.load_imei(row,table_imei,pay_ty_entry)).grid(row=0,column=2,padx=5)
 
-                table_imei.bind("<Double-1>", lambda e: remove_stock(table_imei,pay_ty_entry.get(),self.db.stock,filter))
-                popup.protocol("WM_DELETE_WINDOW", on_close)
+                    table_imei_columns = ["S.NO","IMEI NO"]
+                    table_imei_width = [50,150]
+                    table_imei = create_treeview(popup,table_imei_columns,table_imei_width,20)
+                    
+                    filter={
+                        "model":str(row[2]),
+                        "storage":str(row[3]),
+                        "condition":str(row[5])
+                    }
 
+                    table_imei.bind("<Double-1>", lambda e: remove_stock(table_imei,pay_ty_entry.get(),self.db.stock,filter))
+                    popup.protocol("WM_DELETE_WINDOW", on_close)
+
+                else:
+                    messagebox.showerror("Wrong Product","The product you have selected does not have IMEI Nos")
             else:
                 messagebox.showerror("Empty Input","Please Select a Mobile model")
 
         sh_btn = ttk.Button(self.root,text="Show IMEI",width=15,cursor="hand2",style="Log.TButton",command=show_imei)
         sh_btn.pack(pady=10)
 
-        table_stock_columns =["S.NO", "Date Purchase","Model","Storage","Quantity", "Condition","Purchse Price per Unit"]
+        table_stock_columns =["S.NO", "Date Purchase","Product","Storage","Quantity", "Condition","Purchse Price per Unit"]
         table_stock_widths= [50,100,120,100,100,120,120,150] 
         table_stocks = create_treeview(self.root, table_stock_columns, table_stock_widths,20)
         self.db.load_stock(table_stocks)
@@ -473,7 +479,6 @@ class windows:
             else:   
                 self.db.add_stock(product,storage,condition,date,quantity,purchase_price,imeis,supplier_name,supplier_cnic,is_mobile)
                 reset_ui()
-
 
     def credit_acc(self):
         
