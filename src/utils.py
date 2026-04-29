@@ -1,5 +1,5 @@
 from tkinter import *
-from tkinter import ttk, messagebox
+from tkinter import ttk, messagebox,Toplevel
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4
@@ -299,3 +299,70 @@ def validate_frame(frame):
                 if not child.get().strip():
                     return False
     return True
+
+def delete(filter1,selected,dialog,db,table_stocks):
+    db.delete_one(filter1)
+    table_stocks.delete(selected)     
+
+    for index, row in enumerate(table_stocks.get_children(), start=1):
+        values = list(table_stocks.item(row, "values"))
+        values[0] = index
+        table_stocks.item(row, values=values)
+
+    dialog.destroy()
+    messagebox.showinfo("Success","Successfully removed The product from Inventory")
+
+def update(filter1,selected,dialog,db,table_stocks):
+    upda = Toplevel(dialog)
+    upda.title("Update")
+    center_window(upda,300,150)
+    upda.maxsize(300, 150)
+    upda.grab_set()
+
+    find = db.find_one(filter1)
+
+    entry_frame = Frame(upda)
+    entry_frame.pack(pady=10)
+
+    grid_label(entry_frame,"Quantity",0,0,10)
+    quan_entry = ttk.Entry(entry_frame,font=("Helvetica",10,"bold"))
+    quan_entry.grid(row=0,column=1,padx=5)
+    quan_entry.insert(0,find.get("quantity"))
+
+    grid_label(entry_frame,"Purchase Price",0,1,10)
+    purchase_price_entry = ttk.Entry(entry_frame,font=("Helvetica",10,"bold"))
+    purchase_price_entry.grid(row=1,column=1,padx=5)
+    purchase_price_entry.insert(0,find.get("purchase_price"))
+    
+    ttk.Button(upda,text="Update",cursor="hand2",command=lambda:save()).pack()
+
+    def save():
+        quantity = int(quan_entry.get())
+        purchase_price = purchase_price_entry.get()
+        if not purchase_price or not quantity:
+            messagebox.showwarning("Missing Fields","Please Fill the missing fields")
+            return
+        db.update_one(filter1,{"$set":{"quantity":quantity,"purchase_price":purchase_price}})
+        messagebox.showinfo("Success","Successfully updated The product in Inventory")
+        upda.destroy()
+        dialog.destroy()
+        
+        item_id = selected[0]
+        values = list(table_stocks.item(item_id, "values"))
+        values[4] = quantity
+        values[6] = purchase_price
+        table_stocks.item(item_id, values=values)
+
+
+
+
+    # db.delete_one(filter1)
+    # table_stocks.delete(selected)     
+
+    # for index, row in enumerate(table_stocks.get_children(), start=1):
+    #     values = list(table_stocks.item(row, "values"))
+    #     values[0] = index
+    #     table_stocks.item(row, values=values)
+
+    # dialog.destroy()
+    # messagebox.showinfo("Success","Successfully removed The product from Inventory")

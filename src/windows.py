@@ -1,7 +1,7 @@
 from tkinter import ttk,messagebox,Frame,Toplevel,PhotoImage,END,Canvas,BooleanVar,Checkbutton
 from tkinter import *
 from src.database import database
-from src.utils import center_window,destroy_widgets,create_treeview,get_selected,grid_label,grid_create_treeview,print_invoice,add_placeholder,resource_path,remove_stock,validate_frame
+from src.utils import center_window,destroy_widgets,create_treeview,get_selected,grid_label,grid_create_treeview,print_invoice,add_placeholder,resource_path,remove_stock,validate_frame,delete,update
 from datetime import date,datetime
 from tkcalendar import DateEntry
 
@@ -295,16 +295,19 @@ class windows:
             filter1 = {"model":str(row[2])}
             is_mobile = self.db.stock.find_one(filter1)["is_mobile"]
             if is_mobile == False:
-                confirm = messagebox.askyesno("Remove Stock","Do you want to Remove the item from inventory?")
-                if confirm:
-                    self.db.stock.delete_one(filter1)
-                    table_stocks.delete(selected)     
+                
+                dialog = Toplevel(self.root)
+                dialog.title("Select Action")
+                center_window(dialog,250,120)
+                dialog.maxsize(250, 120)
+                dialog.grab_set()  
 
-                    for index, row in enumerate(table_stocks.get_children(), start=1):
-                        values = list(table_stocks.item(row, "values"))
-                        values[0] = index
-                        table_stocks.item(row, values=values)
-                    messagebox.showinfo("Success","Successfully removed The product from Inventory")
+                ttk.Label(dialog, text="What do you want to do?").pack(pady=10)
+
+                ttk.Button(dialog, text="Delete", command=lambda:delete(filter1,selected,dialog,self.db.stock,table_stocks)).pack(side="right", padx=10, pady=10)
+                ttk.Button(dialog, text="Update", command=lambda:update(filter1,selected,dialog,self.db.stock,table_stocks)).pack(side="right", padx=10, pady=10)
+
+                
             else:
                 messagebox.showerror("Can't Be Deleted","The product you have selected have IMEI Nos \nCan't be deleted from here")
 
