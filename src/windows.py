@@ -922,11 +922,27 @@ class windows:
                 for c in s["conditions"]:
                     model_data[item["model"]][storage_name][c["condition"]] = c["imeis"]
                 
-        grid_label(left_frame,"Model:",0,0,11)
+        def on_keyrelease(event):
+            value = model_entry.get().lower()
+
+            if value == "":
+                data = all_models
+            else:
+                data = [item for item in all_models if value in item.lower()]
+
+            model_entry['values'] = data
+
+            # if data:
+            #     model_entry.after(100, lambda: model_entry.event_generate('<Down>')) # open dropdown automatically
+
+        grid_label(left_frame,"Product:",0,0,11)
         model_entry = ttk.Combobox(left_frame)
         model_entry['values'] = list(model_data.keys())
-        model_entry.grid(row=0,column=1,padx=5,pady=5)
-        model_entry.set("Select  Model")
+        model_entry.grid(row=0, column=1, padx=5, pady=5)
+        model_entry.set("Select Model")
+
+        all_models = list(model_data.keys())  # keep original list
+        model_entry.bind("<KeyRelease>", on_keyrelease)
 
         grid_label(left_frame,"Storage:",2,0,11)
         storage_entry = ttk.Combobox(left_frame)
@@ -983,25 +999,41 @@ class windows:
             condition = condition_entry.get()
             imei = imei_entry.get()
             price = total_entry_in.get()
-            if model == "Select Model" or storage == "Select Storage" or condition == "Select Condition" or imei == "Select IMEI NO" or not price:
-                messagebox.showerror("Missing Fields","Please fill the missing feilds")
+            filter4 = {"model":model} 
+            if self.db.stock.find_one(filter4).get("is_mobile") == True:
+
+                if model == "Select Model" or storage == "Select Storage" or condition == "Select Condition" or imei == "Select IMEI NO" or not price:
+                    messagebox.showerror("Missing Fields","Please fill the missing feilds")
+                    return
+                else:
+
+                    inv_table.insert("",END,values=(
+                        len(inv_table.get_children())+1,
+                        imei,
+                        model,
+                        storage,
+                        condition,
+                        price
+                    ))
             else:
-
-                inv_table.insert("",END,values=(
-                    len(inv_table.get_children())+1,
-                    imei,
-                    model,
-                    storage,
-                    condition,
-                    price
-                ))
-
-                total(price)
-                model_entry.set("Select Model")
-                storage_entry.set("Select Storage")
-                condition_entry.set("Select Condition")
-                imei_entry.set("Select IMEI NO")
-                total_entry_in.delete(0,'end')
+                if model == "Select Model" or not price:
+                    messagebox.showerror("Missing Fields","Please fill the missing feilds")
+                    return
+                else:
+                    inv_table.insert("",END,values=(
+                        len(inv_table.get_children())+1,
+                        "Nill",
+                        model,
+                        "Nill",
+                        "Nill",
+                        price
+                    ))
+            total(price)
+            model_entry.set("Select Model")
+            storage_entry.set("Select Storage")
+            condition_entry.set("Select Condition")
+            imei_entry.set("Select IMEI NO")
+            total_entry_in.delete(0,'end')
                 
         ttk.Button(left_frame,text="Add",cursor="hand2",style="Module.TButton",command=add).grid(row=1,column=4,columnspan=2,padx=5)
         
@@ -1027,7 +1059,7 @@ class windows:
                 values[0] = index
                 inv_table.item(row, values=values)
         
-        inv_table_columns = ["S.NO","IMEI NO","Model","Storage","Condition","Price"]
+        inv_table_columns = ["S.NO","IMEI NO","Product","Storage","Condition","Price"]
         inv_table_widths = [50,120,120,100,100,120]
         inv_table = grid_create_treeview(left_frame,inv_table_columns,inv_table_widths,18)
 
