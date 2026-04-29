@@ -311,9 +311,41 @@ class windows:
         sh_btn = ttk.Button(self.root,text="Show IMEI",width=15,cursor="hand2",style="Log.TButton",command=show_imei)
         sh_btn.pack(pady=10)
 
+        frame = Frame(self.root)
+        frame.pack(pady=10)
+
+        def search_data():
+            query = search_entry.get().replace(" ","").lower()
+
+            # Clear table
+            table_stocks.delete(*table_stocks.get_children())
+            all_data = self.db.stock.find()
+            # Filter and insert only matching rows
+            s_no = 1
+            for item in all_data:
+                if query in item["model"].replace(" ","").lower():
+                    table_stocks.insert("", "end", values=(
+                        s_no,
+                        item["purchase_date"],
+                        item["model"],
+                        item.get("storage", ""),
+                        item["quantity"],
+                        item.get("condition", ""),
+                        item["purchase_price"]
+                    ))
+                    s_no+=1
+
+        search_entry = ttk.Entry(frame, width=30)
+        search_entry.grid(row=0, column=0,sticky="w",padx=10)
+        text ="Search"
+        add_placeholder(search_entry,text)
+        search_entry.bind("<KeyRelease>", lambda e: search_data())
+
+        frame_2 = Frame(frame)
+        frame_2.grid(row=1,column=0)
         table_stock_columns =["S.NO", "Date Purchase","Product","Storage","Quantity", "Condition","Purchse Price per Unit"]
-        table_stock_widths= [50,100,120,100,100,120,120,150] 
-        table_stocks = create_treeview(self.root, table_stock_columns, table_stock_widths,20)
+        table_stock_widths= [50,100,120,100,100,120,120,200] 
+        table_stocks = grid_create_treeview(frame_2, table_stock_columns, table_stock_widths,20)
         self.db.load_stock(table_stocks)
 
         table_stocks.bind("<Double-1>", lambda e: remove_stock_1())
