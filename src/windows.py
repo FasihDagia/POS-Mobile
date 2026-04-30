@@ -1353,7 +1353,38 @@ class windows:
         bk_btn.image = smaller_img
         bk_btn.pack(anchor="nw", padx=10, pady=10)
 
-        ttk.Label(self.root,text="Sales",font=("Helvetica",20,"bold")).pack(pady=20)
+        ttk.Label(self.root,text="Sales",font=("Helvetica",20,"bold")).pack(pady=5)
+
+        entry_frame = Frame(self.root)
+        entry_frame.pack(pady=5)
+
+        grid_label(entry_frame,"View From:",0,0,12)
+        from_date = DateEntry(entry_frame, width=12, background='darkblue',
+                       foreground='white', borderwidth=2,date_pattern="yyyy-mm-dd")
+        from_date.grid(row=0,column=1,padx=5)
+
+        grid_label(entry_frame,"View To:",2,0,12)
+        to_date = DateEntry(entry_frame, width=12, background='darkblue',
+                       foreground='white', borderwidth=2,date_pattern="yyyy-mm-dd")
+        to_date.grid(row=0,column=3,padx=5)
+
+        ttk.Button(entry_frame,text="view",cursor="hand2",command=lambda:view_info(from_date,to_date,no_inv_label,tot_sale_label,amt_recev_label)).grid(row=0,column=4,padx=5)
+
+        info_entry = Frame(self.root)
+        info_entry.pack(pady=5)
+
+        grid_label(info_entry,"No Invoices:",0,0,11)
+        no_inv_label = ttk.Label(info_entry,text=0,font=("helvetica",11,"bold"))
+        no_inv_label.grid(padx=5,row=0,column=1)
+
+        grid_label(info_entry,"Total Sale:",2,0,11)
+        tot_sale_label = ttk.Label(info_entry,text=0,font=("helvetica",11,"bold"))
+        tot_sale_label.grid(padx=5,row=0,column=3)
+
+        grid_label(info_entry,"Amount Received:",4,0,11)
+        amt_recev_label = ttk.Label(info_entry,text=0,font=("helvetica",11,"bold"))
+        amt_recev_label.grid(padx=5,row=0,column=5)
+
 
         def view_inv():
             row = get_selected(table_sales)
@@ -1396,3 +1427,45 @@ class windows:
         table_sales = create_treeview(self.root, sales_table_columns, sales_columns_width,18)
         self.db.load_sales(table_sales)
 
+        def view_info(view_from,view_to,no_inv_label,tot_sale_label,amt_recev_label):
+            from_date = view_from.get()
+            to_date = view_to.get()
+
+            if not from_date and not to_date:
+                messagebox.showerror("Missing Fields","Both the Dates can't be empty!")
+                return
+            if len(table_sales.get_children()) == 0:
+                messagebox.showerror("No Invoices","No Invoices generated")
+                return
+
+            if not from_date:
+                from_date = self.db.sales.find_one({"invoice_no":"INV00001"}).get("inv_date")
+            if not to_date:
+                now = datetime.now()
+                to_date = now.strftime("%Y-%m-%d")
+
+            results = self.db.sales.find({
+                "inv_date": {
+                    "$gte": from_date,
+                    "$lte": to_date
+                }
+            })
+         
+            if results:
+                no_invoices = 0
+                total_invoice_amount = 0.00
+                amount_received = 0.00
+                for result in results:
+                    no_invoices+=1
+                    total_invoice_amount += float(result.get("total_inv_amount"))
+                    if float(result.get("down_payment")) == 0.00:
+                        amount_received += float(result.get("total_inv_amount"))
+                    else:
+                        amount_received += float(result.get("down_payment"))
+                if no_invoices == 0:
+                    messagebox.showerror("No Invoices","No Invoices in the given date range!")
+                    return
+                else:
+                    no_inv_label.config(text=no_invoices)
+                    tot_sale_label.config(text=total_invoice_amount)
+                    amt_recev_label.config(text=amount_received)

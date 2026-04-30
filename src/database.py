@@ -337,7 +337,7 @@ class database:
         for row in table.get_children():
             table.delete(row)
 
-        entries = self.sales.find()
+        entries = self.sales.find().sort("_id", -1)
         s_no =1
         for entry in entries:
             if entry.get("down_payment") == 0:
