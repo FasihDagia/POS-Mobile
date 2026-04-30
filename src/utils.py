@@ -1,5 +1,5 @@
 from tkinter import *
-from tkinter import ttk, messagebox,Toplevel
+from tkinter import ttk, messagebox,Toplevel,filedialog
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4
@@ -144,14 +144,28 @@ def grid_create_treeview(parent, columns, widths, height):
 
 def print_invoice(data, customer, invoice_info):
 
-    doc = SimpleDocTemplate(f"{invoice_info["invoice_no"]}.pdf", pagesize=A4)
-    styles = getSampleStyleSheet()
-    center_style = ParagraphStyle(
-    name="Center",
-    parent=styles["Normal"],
-    alignment=1   # 0=left, 1=center, 2=right
+    file_name = filedialog.asksaveasfilename(
+        defaultextension=".pdf",
+        initialfile=f"{invoice_info['invoice_no']}.pdf",
+        filetypes=[("PDF files", "*.pdf")],
+        title="Save Invoice As"
     )
+
+# If user cancels → stop function
+    if not file_name:
+        return
+
+    doc = SimpleDocTemplate(file_name, pagesize=A4)
+    styles = getSampleStyleSheet()
+
+    center_style = ParagraphStyle(
+        name="Center",
+        parent=styles["Normal"],
+        alignment=1
+    )
+
     content = []
+
     # ================= COMPANY HEADER =================
     content.append(Paragraph("<b>MH POINT</b>", styles["Title"]))
     content.append(Paragraph("<b>The Name of Trust</b>", styles["Title"]))
@@ -165,7 +179,6 @@ def print_invoice(data, customer, invoice_info):
         ["CNIC:", customer["cnic"]],
     ]
 
-    # Add credit details if needed
     if customer["payment_type"].lower() == "credit sale":
         left_data.append(["Down Payment:", str(customer["down_payment"])])
         left_data.append(["Due Date:", customer["due_date"]])
@@ -177,12 +190,8 @@ def print_invoice(data, customer, invoice_info):
         ["Payment:", customer["payment_type"]],
     ]
 
-    table_data = [
-        [Table(left_data), Table(right_data)]
-    ]
-
-    table = Table(table_data, colWidths=[270, 270])
-    content.append(table)
+    info_table = Table([[Table(left_data), Table(right_data)]], colWidths=[270, 270])
+    content.append(info_table)
     content.append(Spacer(1, 20))
 
     # ================= PRODUCTS TABLE =================
@@ -191,44 +200,70 @@ def print_invoice(data, customer, invoice_info):
     total = 0
 
     for i, item in enumerate(data, start=1):
-        desc = f"{item['model']} {item['storage']} {item['condition']} (IMEI: {item['imei']})"
-        amount = item["price"]
+        desc = item['model']
 
+        if item.get("storage"):
+            desc += f" {item['storage']}"
+        if item.get("condition"):
+            desc += f" {item['condition']}"
+        if item.get("imei"):
+            desc += f" (IMEI: {item['imei']})"
+
+        amount = float(item["price"])
         total += amount
 
         table_data.append([i, desc, amount])
 
-    # Add total row
+    # TOTAL
     table_data.append(["", "TOTAL", total])
+
+    # CREDIT SALE CALCULATION
+    if customer["payment_type"].lower() == "credit sale":
+        down_payment = float(customer.get("down_payment", 0))
+        balance = total - down_payment
+
+        table_data.append(["", "Down Payment", down_payment])
+        table_data.append(["", "Balance", balance])
 
     product_table = Table(table_data, colWidths=[50, 350, 100])
 
     product_table.setStyle(TableStyle([
-        ("GRID", (0,0), (-1,-1), 1, colors.black),
-        ("BACKGROUND", (0,0), (-1,0), colors.lightgrey),
-        ("ALIGN", (2,1), (-1,-1), "RIGHT"),
-        ("FONTNAME", (0,0), (-1,0), "Helvetica-Bold"),
+        ("GRID", (0, 0), (-1, -1), 1, colors.black),
+        ("BACKGROUND", (0, 0), (-1, 0), colors.lightgrey),
+        ("ALIGN", (2, 1), (-1, -1), "RIGHT"),
+        ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
     ]))
 
     content.append(product_table)
-    content.append(Spacer(1, 30))
+    content.append(Spacer(1, 20))
+
+    # ================= NOTE =================
+    note_text = invoice_info.get("note", "").strip()
+    note_text = note_text if note_text else "-"
+
+    content.append(Paragraph("<b>Note:</b>", styles["Heading3"]))
+    content.append(Paragraph(note_text, styles["Normal"]))
+    content.append(Spacer(1, 20))
 
     # ================= FOOTER =================
     content.append(Paragraph("Terms & Conditions:", styles["Heading3"]))
     content.append(Paragraph("Goods once sold are not returnable.", styles["Normal"]))
     content.append(Paragraph("No warranty of panel on used phones", styles["Normal"]))
     content.append(Paragraph("3 Days checking warranty on used phones", styles["Normal"]))
-    content.append(Paragraph("The warranty on the box pack phones is provided by the company, The shop owner will not be responsible", styles["Normal"]))
-     
-    content.append(Spacer(1, 50))
+    content.append(Paragraph(
+        "The warranty on the box pack phones is provided by the company, The shop owner will not be responsible",
+        styles["Normal"]
+    ))
 
+    content.append(Spacer(1, 40))
     content.append(Paragraph("Signature: ____________________", styles["Normal"]))
 
     # ================= BUILD =================
     doc.build(content)
 
-    # Auto print
-    os.startfile(f"{invoice_info["invoice_no"]}.pdf", "print")
+    # ================= AUTO PRINT =================
+    import os
+    os.startfile(file_name, "print")
     
 def add_placeholder(entry, text):
             entry.delete(0, END)
@@ -352,17 +387,3 @@ def update(filter1,selected,dialog,db,table_stocks):
         values[4] = quantity
         values[6] = purchase_price
         table_stocks.item(item_id, values=values)
-
-
-
-
-    # db.delete_one(filter1)
-    # table_stocks.delete(selected)     
-
-    # for index, row in enumerate(table_stocks.get_children(), start=1):
-    #     values = list(table_stocks.item(row, "values"))
-    #     values[0] = index
-    #     table_stocks.item(row, values=values)
-
-    # dialog.destroy()
-    # messagebox.showinfo("Success","Successfully removed The product from Inventory")

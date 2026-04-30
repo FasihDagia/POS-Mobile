@@ -736,7 +736,7 @@ class windows:
         
         destroy_widgets(self.root)
 
-        center_window(self.root, 1150,650)
+        center_window(self.root, 1160,650)
         self.root.title("Invoiceing")
 
         style = ttk.Style()
@@ -800,6 +800,10 @@ class windows:
 
         nt_du_dt_label.grid(row=6,column=0,padx=5,pady=7)
         nt_du_dt_entry.grid(row=6,column=1,padx=5)
+
+        grid_label(right_frame,"Note:",0,7,12)
+        note_entry = Text(right_frame, height=5, width=30)
+        note_entry.grid(row=7,column=1,padx=5,pady=10)
 
         def cr_sale_input(event):
             type = pay_ty_entry.get()
@@ -1108,6 +1112,11 @@ class windows:
                 customer_cnic = "Nill"
             else:
                 customer_cnic = cus_cnic_entry.get()
+            
+            note = note_entry.get("1.0", END)
+
+            if not note:
+                note = "Nill"
 
             for entry in inv_table.get_children():
                 values = inv_table.item(entry)["values"]
@@ -1149,38 +1158,73 @@ class windows:
                 "date": now.strftime("%Y-%m-%d"),
                 "time": now.strftime("%H:%M"),
                 "profit": profit,
-                "total_inv_amount":int(total_label.cget("text"))
+                "total_inv_amount":int(total_label.cget("text")),
+                "note":note
             }
             
             self.view_invoice(data, customer, invoice_info, on_save=reset_ui)
         
-    def view_invoice(self,data, customer, invoice_info,on_save = None):
+    def view_invoice(self, data, customer, invoice_info, on_save=None):
 
         win = Toplevel(self.root)
         win.title("Invoice Preview")
-        center_window(win,600,700)
+        center_window(win, 600, 700)
         win.configure(bg="white")
 
+        # --- Top Back Button ---
         img = PhotoImage(file=resource_path("assets/back.png"))
         smaller_img = img.subsample(35, 35)
 
-        bk_btn = ttk.Button(win,image=smaller_img,cursor="hand2",command=lambda:win.destroy())
+        top_bar = Frame(win, bg="white")
+        top_bar.pack(fill="x")
+
+        bk_btn = ttk.Button(top_bar, image=smaller_img, cursor="hand2", command=win.destroy)
         bk_btn.image = smaller_img
         bk_btn.pack(anchor="nw", padx=10, pady=10)
 
-        main = Frame(win, bg="white")
-        main.pack(fill="both", expand=True, padx=15, pady=15)
+        # --- Scrollable Container ---
+        container = Frame(win)
+        container.pack(fill="both", expand=True,padx=8)
 
+        canvas = Canvas(container, bg="white", highlightthickness=0)
+        scrollbar = ttk.Scrollbar(container, orient="vertical", command=canvas.yview)
+
+        scrollable_frame = Frame(canvas, bg="white")
+
+        scrollable_frame.bind(
+            "<Configure>",
+            lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
+        )
+
+        canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
+        canvas.configure(yscrollcommand=scrollbar.set)
+
+        canvas.pack(side="left", fill="both",expand=True)
+        scrollbar.pack(side="right", fill="y")
+
+        # --- Mouse Wheel Scroll ---
+        def _on_mousewheel(event):
+            canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
+
+        canvas.bind_all("<MouseWheel>", _on_mousewheel)
+
+        main = scrollable_frame
+
+        # --- Header ---
         ttk.Label(main, text="MH POINT", font=("Helvetica", 20, "bold"), background="white").pack()
         ttk.Label(main, text="The Name of Trust", font=("Helvetica", 14, "bold"), background="white").pack()
 
-        ttk.Label(main,
-            text="Shop # 242, Street # 11, Block-B, Baldia Complex, Mirpurkhas",background="white",font=("Helvetica",12)).pack()
+        ttk.Label(
+            main,
+            text="Shop # 242, Street # 11, Block-B, Baldia Complex, Mirpurkhas",
+            background="white"
+        ).pack()
 
-        Label(main, text="Phone: 0336-0601994", background="white",font=("Helvetica",12)).pack()
+        ttk.Label(main, text="Phone: 0336-0601994", background="white").pack()
 
         ttk.Separator(main).pack(fill="x", pady=10)
 
+        # --- Info Section ---
         info_frame = Frame(main, bg="white")
         info_frame.pack(fill="x")
 
@@ -1190,60 +1234,107 @@ class windows:
         right = Frame(info_frame, bg="white")
         right.pack(side="right", fill="both", expand=True)
 
-        ttk.Label(left, text=f"Customer: {customer['name']}", background="white",font=("Helvetica",10)).pack(anchor="center")
-        ttk.Label(left, text=f"CNIC: {customer['cnic']}", background="white",font=("Helvetica",10)).pack(anchor="center")
+        ttk.Label(left, text=f"Customer: {customer['name']}", background="white").pack(anchor="center")
+        ttk.Label(left, text=f"CNIC: {customer['cnic']}", background="white").pack(anchor="center")
 
         if customer["payment_type"].lower() == "credit sale":
-            ttk.Label(left, text=f"Down Payment: {customer['down_payment']}", background="white",font=("Helvetica",10)).pack(anchor="center")
-            ttk.Label(left, text=f"Due Date: {customer['due_date']}", background="white",font=("Helvetica",10)).pack(anchor="center")
+            ttk.Label(left, text=f"Down Payment: {customer['down_payment']}", background="white").pack(anchor="center")
+            ttk.Label(left, text=f"Due Date: {customer['due_date']}", background="white").pack(anchor="center")
 
-        ttk.Label(right, text=f"Invoice No: {invoice_info['invoice_no']}", background="white",font=("Helvetica",10)).pack(anchor="center")
-        ttk.Label(right, text=f"Date: {invoice_info['date']}", background="white",font=("Helvetica",10)).pack(anchor="center")
-        ttk.Label(right, text=f"Time: {invoice_info['time']}", background="white",font=("Helvetica",10)).pack(anchor="center")
-        ttk.Label(right, text=f"Payment: {customer['payment_type']}", background="white",font=("Helvetica",10)).pack(anchor="center")
+        ttk.Label(right, text=f"Invoice No: {invoice_info['invoice_no']}", background="white").pack(anchor="center")
+        ttk.Label(right, text=f"Date: {invoice_info['date']}", background="white").pack(anchor="center")
+        ttk.Label(right, text=f"Time: {invoice_info['time']}", background="white").pack(anchor="center")
+        ttk.Label(right, text=f"Payment: {customer['payment_type']}", background="white").pack(anchor="center")
 
         ttk.Separator(main).pack(fill="x", pady=10)
 
+        # --- Table ---
         table_frame = Frame(main, bg="white")
         table_frame.pack(fill="both", expand=True)
 
         tree_columns = ["S.No", "Description", "Amount"]
-        tree_columns_width = [50,300,200]
-        tree = create_treeview(table_frame,tree_columns,tree_columns_width,5)
+        tree_columns_width = [50, 300, 200]
+        tree = create_treeview(table_frame, tree_columns, tree_columns_width, 5)
 
         total = 0
 
         for i, item in enumerate(data, start=1):
-            desc = f"{item['model']} {item['storage']} {item['condition']} (IMEI: {item['imei']})"
-            amount = float(item["price"])
+            desc = item['model']
 
+            if item.get("storage"):
+                desc += f" {item['storage']}"
+            if item.get("condition"):
+                desc += f" {item['condition']}"
+            if item.get("imei"):
+                desc += f" (IMEI: {item['imei']})"
+
+            amount = float(item["price"])
             total += amount
+
             tree.insert("", "end", values=(i, desc, amount))
 
         tree.insert("", "end", values=("", "TOTAL", total))
+
+        if customer["payment_type"].lower() == "credit sale":
+            down_payment = float(customer.get("down_payment", 0))
+            balance = total - down_payment
+
+            tree.insert("", "end", values=("", "Down Payment", down_payment))
+            tree.insert("", "end", values=("", "Balance", balance))
 
         tree.pack(fill="both", expand=True)
 
         ttk.Separator(main).pack(fill="x", pady=10)
 
+        # --- Note ---
+        ttk.Label(main, text="Note", font=("Helvetica", 12, "bold"), background="white").pack(anchor="w")
+
+        note_text = invoice_info.get("note", "").strip()
+        note_text = note_text if note_text else "-"
+
+        ttk.Label(
+            main,
+            text=note_text,
+            background="white",
+            wraplength=550,
+            justify="left"
+        ).pack(anchor="w", pady=5)
+
+        ttk.Separator(main).pack(fill="x", pady=10)
+
+        # --- Terms ---
         ttk.Label(main, text="Terms & Conditions", font=("Helvetica", 12, "bold"), background="white").pack(anchor="w")
 
-        ttk.Label(main, text="• Goods once sold are not returnable.", background="white",font=("Helvetica",10)).pack(anchor="w")
-        ttk.Label(main, text="• No warranty of panel on used phones", background="white",font=("Helvetica",10)).pack(anchor="w")
-        ttk.Label(main, text="• 3 Days checking warranty on used phones", background="white",font=("Helvetica",10)).pack(anchor="w")
-        ttk.Label(main, text="• The warranty on the box pack phones is provided by the company, The shop owner will not be responsible", background="white",font=("Helvetica",10)).pack(anchor="w")
+        ttk.Label(main, text="• Goods once sold are not returnable.", background="white").pack(anchor="w")
+        ttk.Label(main, text="• No warranty of panel on used phones", background="white").pack(anchor="w")
+        ttk.Label(main, text="• 3 Days checking warranty on used phones", background="white").pack(anchor="w")
+        ttk.Label(
+            main,
+            text="• The warranty on the box pack phones is provided by the company, The shop owner will not be responsible",
+            background="white",
+            wraplength=550,
+            justify="left"
+        ).pack(anchor="w")
 
-        ttk.Label(main, text="Signature: ____________________", background="white").pack(pady=20, anchor="center")
-        btn_frame = Frame(main)
-        btn_frame.pack(pady=10)
+        ttk.Label(main, text="Signature: ____________________", background="white").pack(pady=20)
 
-        ttk.Button(btn_frame, text="Save",command=lambda: self.db.save_invoice(data,customer,invoice_info,win,on_save=on_save)).grid(row=0,column=0,pady=10)
-        ttk.Button(btn_frame, text="Print",command=lambda: print_invoice(data,customer,invoice_info)).grid(row=0,column=1,pady=10)
-        ttk.Button(btn_frame, text="Save & Print",command=lambda:save_print).grid(row=0,column=2,pady=10)
+        # --- Fixed Bottom Buttons ---
+        btn_frame = Frame(win, bg="white")
+        btn_frame.pack(fill="x", side="bottom", pady=10)
+
+        def save_action():
+            self.db.save_invoice(data, customer, invoice_info, win, on_save=on_save)
+
+        def print_action():
+            print_invoice(data, customer, invoice_info)
 
         def save_print():
-            self.db.save_invoice(data,customer,invoice_info,win,on_save=on_save)
-            print_invoice(data,customer,invoice_info)
+            self.db.save_invoice(data, customer, invoice_info, win, on_save=on_save)
+            print_invoice(data, customer, invoice_info)
+
+        ttk.Button(btn_frame, text="Save", command=save_action).pack(side="left", expand=True, padx=10)
+        ttk.Button(btn_frame, text="Print", command=print_action).pack(side="left", expand=True, padx=10)
+        ttk.Button(btn_frame, text="Save & Print", command=save_print).pack(side="left", expand=True, padx=10)
 
     def sales(self):
 
