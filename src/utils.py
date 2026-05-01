@@ -387,3 +387,29 @@ def update(filter1,selected,dialog,db,table_stocks):
         values[4] = quantity
         values[6] = purchase_price
         table_stocks.item(item_id, values=values)
+
+def invoice_details(inv_no,db,labels,table):
+    invoice = db.find_one({"invoice_no":inv_no})
+
+    if invoice:
+        labels["date"].config(text=invoice.get("inv_date"))
+        labels["customer_name"].config(text=invoice.get("customer_name"))
+        labels["customer_cnic"].config(text=invoice.get("customer_cnic"))
+        labels["payment_type"].config(text=invoice.get("payment_type"))
+        labels["down_payment"].config(text=invoice.get("down_payment"))
+        labels["next_due_date"].config(text=invoice.get("due_date"))
+        labels["total_invoice_amount"].config(text=invoice.get("total_inv_amount"))
+        labels["note"].config(text=invoice.get("note"))
+
+        ["S.NO","IMEI NO","Product","Storage","Condition","Price"]
+        s_no = 1
+        for row in invoice.get("purchased_items"):
+            table.insert("", END,values=(
+                s_no,
+                row["imei"],
+                row["model"],
+                row["storage"],
+                row["condition"],
+                row["price"]
+            ))
+            s_no+=1

@@ -2,6 +2,7 @@ from tkinter import ttk,messagebox,Frame,Toplevel,PhotoImage,END,Canvas,BooleanV
 from tkinter import *
 from src.database import database
 from src.utils import center_window,destroy_widgets,create_treeview,get_selected,grid_label,grid_create_treeview,print_invoice,add_placeholder,resource_path,remove_stock,validate_frame,delete,update
+from src.utils import invoice_details
 from datetime import date,datetime
 from tkcalendar import DateEntry
 
@@ -201,8 +202,8 @@ class windows:
         style.configure("Module.TButton", font=("Helvetica", 11),borderwidth=4,padding=(4,25))
         style.configure("Logout.TButton", font=("Helvetica", 11),borderwidth=4,padding=2)
         
-        buttons = ["Stock","Stock Entry","Credit Accounts","Invoicing","Sales"]
-        commmands = [self.stocks_window,self.stock_entry,self.credit_acc,self.invoicing,self.sales]
+        buttons = ["Stock","Stock Entry","Credit Accounts","Invoicing Module","Sales"]
+        commmands = [self.stocks_window,self.stock_entry,self.credit_acc,self.invoicing_module,self.sales]
 
         btn_frame = Frame(self.root)
         btn_frame.pack(pady=5)
@@ -217,6 +218,30 @@ class windows:
             if col == 3:
                 row+=1
                 col = 0
+
+    def invoicing_module(self):
+        destroy_widgets(self.root)
+
+        center_window(self.root, 600,300)
+        self.root.title("Invoicing Module")
+
+        style = ttk.Style()
+        style.configure("Module.TButton", font=("Helvetica", 11),borderwidth=4,padding=(4,25))
+
+        img = PhotoImage(file=resource_path("assets/back.png"))
+        smaller_img = img.subsample(30, 30)
+
+        bk_btn = ttk.Button(self.root,image=smaller_img,cursor="hand2",command=self.home_page)
+        bk_btn.image = smaller_img
+        bk_btn.pack(anchor="nw", padx=10, pady=10)
+
+        ttk.Label(self.root,text="Invoicing Module",font=("Helvetica",18,"bold")).pack(pady=10)
+
+        btn_frame = Frame(self.root)
+        btn_frame.pack(pady=5)
+        
+        ttk.Button(btn_frame, text="Generate Invoice",style="Module.TButton" ,width=20, cursor="hand2",command=self.invoicing).grid(padx=20, pady=20, row=0,column=0)
+        ttk.Button(btn_frame, text="Return Invoice",style="Module.TButton" ,width=20, cursor="hand2",command=self.return_invoice).grid(padx=20, pady=20, row=0,column=1)
 
     def stocks_window(self):
         destroy_widgets(self.root)
@@ -737,7 +762,7 @@ class windows:
         destroy_widgets(self.root)
 
         center_window(self.root, 1160,650)
-        self.root.title("Invoiceing")
+        self.root.title("Generate Invoice")
 
         style = ttk.Style()
         style.configure("Module.TButton", font=("Helvetica", 11),padding=4,borderwidth=2)
@@ -746,14 +771,14 @@ class windows:
         img = PhotoImage(file=resource_path("assets/back.png"))
         smaller_img = img.subsample(30, 30)
 
-        bk_btn = ttk.Button(self.root,image=smaller_img,cursor="hand2",command=self.home_page)
+        bk_btn = ttk.Button(self.root,image=smaller_img,cursor="hand2",command=self.invoicing_module)
         bk_btn.image = smaller_img
         bk_btn.pack(anchor="nw", padx=10, pady=10)
 
         entry_frame =Frame(self.root)
         entry_frame.pack(pady=15,padx=10)
 
-        ttk.Label(entry_frame,text="Invoice",font=("Helvetica",20,"bold")).grid(row=0,column=0,columnspan=2,pady=7)
+        ttk.Label(entry_frame,text="Generate Invoice",font=("Helvetica",20,"bold")).grid(row=0,column=0,columnspan=2,pady=7)
     
         right_frame = Frame(entry_frame)
         right_frame.grid(row=1,column=0,padx=10,sticky="ns")
@@ -1119,24 +1144,34 @@ class windows:
                 note = "Nill"
 
             for entry in inv_table.get_children():
+                
                 values = inv_table.item(entry)["values"]
-
-                row = {
-                    "imei": str(values[1]),
-                    "model": values[2],
-                    "storage": values[3],
-                    "condition": values[4],
-                    "price": values[5]
-                }
-                data.append(row)
-
-                    #profit calculator
                 filter = {
                     "model":str(values[2]),
                     "storage":str(values[3]),
                     "condition":str(values[4])
                 }
                 stock_find = self.db.stock.find_one(filter)
+                supplier = None
+                if stock_find.get("is_mobile") == True:
+                    im = stock_find.get("imei_nos")
+                    for key in im.keys():
+                        for i in im[key]:
+                            if i == str(values[1]):
+                                supplier = key 
+
+                row = {
+                    "imei": str(values[1]),
+                    "model": values[2],
+                    "storage": values[3],
+                    "condition": values[4],
+                    "price": values[5],
+                    "is_mobile": stock_find.get("is_mobile"),
+                    "supplier": supplier
+
+                }
+                print(row)
+                data.append(row)
 
                 profit += (int(values[5])-int(stock_find.get("purchase_price")))
                 balance += (int(values[5])-int(dw_pay))
@@ -1151,7 +1186,6 @@ class windows:
                 "balance": balance
             }
 
-            
             now = datetime.now()
             invoice_info = {
                 "invoice_no": inv_no_label.cget("text"),
@@ -1469,3 +1503,96 @@ class windows:
                     no_inv_label.config(text=no_invoices)
                     tot_sale_label.config(text=total_invoice_amount)
                     amt_recev_label.config(text=amount_received)
+
+    def return_invoice(self):
+        
+        destroy_widgets(self.root)
+
+        center_window(self.root, 1170,650)
+        self.root.title("Return Invoice")
+
+        style = ttk.Style()
+        style.configure("Module.TButton", font=("Helvetica", 11),padding=4,borderwidth=2)
+        style.configure("Save.TButton", font=("Helvetica", 11),padding=6,borderwidth=2)
+
+        img = PhotoImage(file=resource_path("assets/back.png"))
+        smaller_img = img.subsample(30, 30)
+
+        bk_btn = ttk.Button(self.root,image=smaller_img,cursor="hand2",command=self.invoicing_module)
+        bk_btn.image = smaller_img
+        bk_btn.pack(anchor="nw", padx=10, pady=10)
+
+        entry_frame =Frame(self.root)
+        entry_frame.pack(pady=15,padx=10)
+
+        ttk.Label(entry_frame,text="Return Invoice",font=("Helvetica",20,"bold")).grid(row=0,column=0,columnspan=2,pady=7)
+    
+        right_frame = Frame(entry_frame)
+        right_frame.grid(row=1,column=0,padx=10,sticky="ns")
+
+        left_frame = Frame(entry_frame)
+        left_frame.grid(row=1,column=1,padx=10,rowspan=2)
+
+        grid_label(right_frame,"Date:",0,0,12)
+        date_label = ttk.Label(right_frame,text="-",font=("Helvetica",12,"bold"))
+        date_label.grid(row=0,column=1,padx=5)
+
+        grid_label(right_frame,"Invoice NO:",0,1,12)
+        invoices = []
+        for inv in self.db.sales.find():
+            invoices.append(inv.get("invoice_no"))
+        inv_entry = ttk.Combobox(right_frame, values=invoices)
+        inv_entry.grid(column=1,row=1,padx=5,pady=7)
+        inv_entry.set("Select Invoice")
+        
+        
+        grid_label(right_frame,"Customer Name:",0,2,12)
+        cus_name_entry = ttk.Label(right_frame,text="-",font=("Helvetica",12,"bold"))
+        cus_name_entry.grid(row=2,column=1,padx=5)
+        
+        grid_label(right_frame,"Customer CNIC:",0,3,12)
+        cus_cnic_entry = ttk.Label(right_frame,text="-",font=("Helvetica",12,"bold"))
+        cus_cnic_entry.grid(row=3,column=1,padx=5)
+        
+        grid_label(right_frame,"Payment Type:",0,4,12)
+        pay_ty_entry =  ttk.Label(right_frame,text="-",font=("Helvetica",12,"bold"))
+        pay_ty_entry.grid(row=4,column=1,padx=5,pady=10)
+
+        dw_pay_label = ttk.Label(right_frame,text="Down Payment:",font=("Helvetica",12,"bold"))
+        dw_pay_entry =  ttk.Label(right_frame,text="-",font=("Helvetica",12,"bold"))
+
+        dw_pay_label.grid(row=5,column=0,padx=5,pady=7)
+        dw_pay_entry.grid(row=5,column=1,padx=5)
+        
+        nt_du_dt_label = ttk.Label(right_frame,text="Due Date:",font=("Helvetica",12,"bold"))
+        nt_du_dt_entry =  ttk.Label(right_frame,text="-",font=("Helvetica",12,"bold"))
+
+        nt_du_dt_label.grid(row=6,column=0,padx=5,pady=7)
+        nt_du_dt_entry.grid(row=6,column=1,padx=5)
+
+        grid_label(right_frame,"Note:",0,7,12)
+        note_entry = ttk.Label(right_frame,text="-",font=("Helvetica",12,"bold"))
+        note_entry.grid(row=7,column=1,padx=5,pady=12)
+
+        inv_table_columns = ["S.NO","IMEI NO","Product","Storage","Condition","Price"]
+        inv_table_widths = [50,120,120,100,100,120]
+        inv_table = grid_create_treeview(left_frame,inv_table_columns,inv_table_widths,18)
+
+        total_frame = Frame(entry_frame)
+        total_frame.grid(pady=7,row=2,column=0)
+        grid_label(total_frame,"Total",0,0,19)
+        total_label = ttk.Label(total_frame,text=0.00,font=("Helvetica",19,"bold"))
+        total_label.grid(row=0,column=1,pady=7)
+
+        labels ={
+            "date":date_label,
+            "customer_name":cus_name_entry,
+            "customer_cnic":cus_cnic_entry,
+            "payment_type":pay_ty_entry,
+            "down_payment":dw_pay_entry,
+            "next_due_date":nt_du_dt_entry,
+            "note":note_entry,
+            "total_invoice_amount":total_label
+        }
+
+        inv_entry.bind("<<ComboboxSelected>>", lambda e: invoice_details(inv_entry.get(),self.db.sales,labels,inv_table))

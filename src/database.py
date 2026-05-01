@@ -191,7 +191,8 @@ class database:
             "due_date": customer["due_date"],
             "purchased_items": data,
             "total_inv_amount": invoice_info["total_inv_amount"],
-            "profit": invoice_info["profit"]
+            "profit": invoice_info["profit"],
+            "note":invoice_info["note"]
         }
 
         details_cr = {
