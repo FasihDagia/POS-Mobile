@@ -335,7 +335,7 @@ def validate_frame(frame):
                     return False
     return True
 
-def delete(filter1,selected,dialog,db,table_stocks):
+def stk_delete(filter1,selected,dialog,db,table_stocks):
     db.delete_one(filter1)
     table_stocks.delete(selected)     
 
@@ -347,7 +347,7 @@ def delete(filter1,selected,dialog,db,table_stocks):
     dialog.destroy()
     messagebox.showinfo("Success","Successfully removed The product from Inventory")
 
-def update(filter1,selected,dialog,db,table_stocks):
+def stk_update(filter1,selected,dialog,db,table_stocks):
     upda = Toplevel(dialog)
     upda.title("Update")
     center_window(upda,300,150)
@@ -401,7 +401,9 @@ def invoice_details(inv_no,db,labels,table):
         labels["total_invoice_amount"].config(text=invoice.get("total_inv_amount"))
         labels["note"].config(text=invoice.get("note"))
 
-        ["S.NO","IMEI NO","Product","Storage","Condition","Price"]
+        for row in table.get_children():
+            table.delete(row)
+        
         s_no = 1
         for row in invoice.get("purchased_items"):
             table.insert("", END,values=(

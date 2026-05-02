@@ -39,6 +39,7 @@ class database:
         self.credit_accounts_history = self.db["credit_accounts_history"]
         self.sales = self.db["sales"]
         self.auth = self.db["auth"]
+        self.ledger = self.db["ledger"]
     
     def hash_password(self, password):
         return hashlib.sha256(password.encode()).hexdigest()
@@ -177,7 +178,7 @@ class database:
                 names.append(supplier)
 
         return names
-    
+   
     def save_invoice(self, data, customer, invoice_info, win, on_save=None):
 
         details = {
@@ -192,7 +193,8 @@ class database:
             "purchased_items": data,
             "total_inv_amount": invoice_info["total_inv_amount"],
             "profit": invoice_info["profit"],
-            "note":invoice_info["note"]
+            "note": invoice_info["note"],
+            "returned": False
         }
 
         details_cr = {
@@ -210,11 +212,11 @@ class database:
             "status": "unsettled"
         }
 
-        for items in data:
+        for item in data:
             filter1 = {
-                "model": str(items["model"]),
-                "storage": str( items["storage"]),
-                "condition": str(items["condition"])
+                "model": str(item["model"]),
+                "storage": str(item.get("storage", "")),
+                "condition": str(item.get("condition", ""))
             }
 
             stck_find = self.stock.find_one(filter1)
@@ -222,29 +224,34 @@ class database:
             if not stck_find:
                 continue
 
-            imei_to_delete = items["imei"]
-            suppliers_imeis = stck_find.get("imei_nos", {})
+            if item.get("imei") != "Nill":
+                imei_to_delete = item["imei"]
+                suppliers_imeis = stck_find.get("imei_nos")
 
-            for supplier, imei_list in suppliers_imeis.items():
-                if imei_to_delete in imei_list:
+                for supplier, imei_list in suppliers_imeis.items():
+                    if imei_to_delete in imei_list:
 
-                    self.stock.update_one(
-                        {"_id": stck_find["_id"]},
-                        {"$pull": {f"imei_nos.{supplier}": imei_to_delete}}
-                    )
-
-                    if len(imei_list) == 1:
                         self.stock.update_one(
                             {"_id": stck_find["_id"]},
-                            {"$unset": {f"imei_nos.{supplier}": ""}}
+                            {"$pull": {f"imei_nos.{supplier}": imei_to_delete}}
                         )
 
-                    break
+                        # Remove supplier key if empty
+                        if len(imei_list) == 1:
+                            self.stock.update_one(
+                                {"_id": stck_find["_id"]},
+                                {"$unset": {f"imei_nos.{supplier}": ""}}
+                            )
+                        break
 
-            updated_doc = self.stock.find_one({"_id": stck_find["_id"]})
-            updated_imeis = updated_doc.get("imei_nos", {})
+                updated_doc = self.stock.find_one({"_id": stck_find["_id"]})
+                updated_imeis = updated_doc.get("imei_nos", {})
 
-            new_quantity = sum(len(v) for v in updated_imeis.values())
+                new_quantity = sum(len(v) for v in updated_imeis.values())
+
+            else:
+                qty_sold = int(item.get("quantity", 1))
+                new_quantity = int(stck_find.get("quantity", 0)) - qty_sold
 
             if new_quantity <= 0:
                 self.stock.delete_one({"_id": stck_find["_id"]})
@@ -254,8 +261,10 @@ class database:
                     {"$set": {"quantity": new_quantity}}
                 )
 
+        # 👉 Save sale
         self.sales.insert_one(details)
 
+        # 👉 Credit handling
         if customer["payment_type"] == "Credit Sale":
             self.credit_accounts_history.insert_one(details_cr)
 
@@ -341,29 +350,30 @@ class database:
         entries = self.sales.find().sort("_id", -1)
         s_no =1
         for entry in entries:
-            if entry.get("down_payment") == 0:
-                table.insert("", END,values=(
-                    s_no,
-                    entry.get("inv_date"),
-                    entry.get("invoice_no"),
-                    entry.get("customer_name"),
-                    entry.get("customer_cnic"),
-                    entry.get("payment_type"),
-                    entry.get("total_inv_amount"),
-                    entry.get("total_inv_amount"),
-                ))
-            else:
-                table.insert("", END,values=(
-                    s_no,
-                    entry.get("inv_date"),
-                    entry.get("invoice_no"),
-                    entry.get("customer_name"),
-                    entry.get("customer_cnic"),
-                    entry.get("payment_type"),
-                    entry.get("total_inv_amount"),
-                    entry.get("down_payment"),
-                ))
-            s_no+=1
+            if entry.get("returned") == False:
+                if entry.get("down_payment") == 0:
+                    table.insert("", END,values=(
+                        s_no,
+                        entry.get("inv_date"),
+                        entry.get("invoice_no"),
+                        entry.get("customer_name"),
+                        entry.get("customer_cnic"),
+                        entry.get("payment_type"),
+                        entry.get("total_inv_amount"),
+                        entry.get("total_inv_amount"),
+                    ))
+                else:
+                    table.insert("", END,values=(
+                        s_no,
+                        entry.get("inv_date"),
+                        entry.get("invoice_no"),
+                        entry.get("customer_name"),
+                        entry.get("customer_cnic"),
+                        entry.get("payment_type"),
+                        entry.get("total_inv_amount"),
+                        entry.get("down_payment"),
+                    ))
+                s_no+=1
 
     # def load_cr_acc_history(self,row,table):
         

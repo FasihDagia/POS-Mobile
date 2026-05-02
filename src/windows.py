@@ -1,7 +1,7 @@
 from tkinter import ttk,messagebox,Frame,Toplevel,PhotoImage,END,Canvas,BooleanVar,Checkbutton
 from tkinter import *
 from src.database import database
-from src.utils import center_window,destroy_widgets,create_treeview,get_selected,grid_label,grid_create_treeview,print_invoice,add_placeholder,resource_path,remove_stock,validate_frame,delete,update
+from src.utils import center_window,destroy_widgets,create_treeview,get_selected,grid_label,grid_create_treeview,print_invoice,add_placeholder,resource_path,remove_stock,validate_frame,stk_delete,stk_update
 from src.utils import invoice_details
 from datetime import date,datetime
 from tkcalendar import DateEntry
@@ -329,8 +329,8 @@ class windows:
 
                 ttk.Label(dialog, text="What do you want to do?").pack(pady=10)
 
-                ttk.Button(dialog, text="Delete", command=lambda:delete(filter1,selected,dialog,self.db.stock,table_stocks)).pack(side="right", padx=10, pady=10)
-                ttk.Button(dialog, text="Update", command=lambda:update(filter1,selected,dialog,self.db.stock,table_stocks)).pack(side="right", padx=10, pady=10)
+                ttk.Button(dialog, text="Delete", command=lambda:stk_delete(filter1,selected,dialog,self.db.stock,table_stocks)).pack(side="right", padx=10, pady=10)
+                ttk.Button(dialog, text="Update", command=lambda:stk_update(filter1,selected,dialog,self.db.stock,table_stocks)).pack(side="right", padx=10, pady=10)
 
                 
             else:
@@ -761,7 +761,7 @@ class windows:
         
         destroy_widgets(self.root)
 
-        center_window(self.root, 1160,650)
+        center_window(self.root, 1250,650)
         self.root.title("Generate Invoice")
 
         style = ttk.Style()
@@ -983,11 +983,28 @@ class windows:
         condition_entry.grid(row=0,column=5,padx=5,pady=5)
         condition_entry.set("Select Condition")
 
-        grid_label(left_frame,"IMEI NO:",0,1,11)
-        imei_entry = ttk.Combobox(left_frame)
-        imei_entry.grid(row=1,column=1,padx=5,pady=7)
+        second_row_frame = Frame(left_frame)
+        second_row_frame.grid(row=1,column=0,columnspan=6)
+
+        grid_label(second_row_frame,"IMEI NO:",0,0,11)
+        imei_entry = ttk.Combobox(second_row_frame)
+        imei_entry.grid(row=0,column=1,padx=5,pady=7)
         imei_entry.set("Select IMEI NO")
 
+        grid_label(second_row_frame,"QTY:",2,0,11)
+        qty_entry = ttk.Entry(second_row_frame,width=10,font=("Helvetica",11,"bold"))
+        qty_entry.grid(row=0,column=3,padx=5,pady=7)
+
+        def check_quantity(event):
+            model = model_entry.get()
+            if model != "Select Model":
+                qty = int(qty_entry.get())
+                find_qty =int(self.db.stock.find_one({"model":model}).get("quantity"))
+                if qty > find_qty:
+                    qty_entry.delete(0,'end')
+                    qty_entry.insert(0,find_qty)
+                    messagebox.showerror("Stock Unavailablity","Not enough stock is available in inventory.")
+        
         def on_model(event):
             m = model_entry.get()
             storage_entry['values'] = list(model_data[m].keys())
@@ -1013,13 +1030,21 @@ class windows:
 
             price = (self.db.stock.find_one(filter)).get("sell_price")
 
+        def on_imei(event):
+            imei = imei_entry.get()
+            if imei != "Select IMEI NO":
+                qty_entry.insert(0,"1")
+                qty_entry.state(["disabled"])
+
         model_entry.bind("<<ComboboxSelected>>", on_model)
         storage_entry.bind("<<ComboboxSelected>>", on_storage)
         condition_entry.bind("<<ComboboxSelected>>", on_condition)
+        imei_entry.bind("<<ComboboxSelected>>", on_imei)
+        qty_entry.bind("<FocusOut>",check_quantity)
 
-        grid_label(left_frame,"Price",2,1,11)
-        total_entry_in = ttk.Entry(left_frame,font=("Helvetica",11,"bold"))
-        total_entry_in.grid(column=3,row=1,padx=5,pady=7)
+        grid_label(second_row_frame,"Price",4,0,11)
+        total_entry_in = ttk.Entry(second_row_frame,font=("Helvetica",11,"bold"),width=15)
+        total_entry_in.grid(column=5,row=0,padx=5,pady=7)
         
 
         def add():
@@ -1027,7 +1052,10 @@ class windows:
             storage = storage_entry.get()
             condition = condition_entry.get()
             imei = imei_entry.get()
-            price = total_entry_in.get()
+            qty = int(qty_entry.get())
+            price = int(total_entry_in.get())
+            total_amount = qty*price
+
             filter4 = {"model":model} 
             if self.db.stock.find_one(filter4).get("is_mobile") == True:
 
@@ -1042,7 +1070,9 @@ class windows:
                         model,
                         storage,
                         condition,
-                        price
+                        qty,
+                        price,
+                        total_amount
                     ))
             else:
                 if model == "Select Model" or not price:
@@ -1055,16 +1085,20 @@ class windows:
                         model,
                         "Nill",
                         "Nill",
-                        price
+                        qty,
+                        price,
+                        total_amount
                     ))
-            total(price)
+            total(total_amount)
             model_entry.set("Select Model")
             storage_entry.set("Select Storage")
             condition_entry.set("Select Condition")
             imei_entry.set("Select IMEI NO")
+            qty_entry.state(["!disabled"])
+            qty_entry.delete(0,'end')
             total_entry_in.delete(0,'end')
                 
-        ttk.Button(left_frame,text="Add",cursor="hand2",style="Module.TButton",command=add).grid(row=1,column=4,columnspan=2,padx=5)
+        ttk.Button(second_row_frame,text="Add",cursor="hand2",style="Module.TButton",command=add).grid(row=0,column=6,padx=5)
         
         def remove_item():
             selected = inv_table.selection()
@@ -1088,9 +1122,12 @@ class windows:
                 values[0] = index
                 inv_table.item(row, values=values)
         
-        inv_table_columns = ["S.NO","IMEI NO","Product","Storage","Condition","Price"]
-        inv_table_widths = [50,120,120,100,100,120]
-        inv_table = grid_create_treeview(left_frame,inv_table_columns,inv_table_widths,18)
+        table_frame = Frame(left_frame)
+        table_frame.grid(row=2,column=0,columnspan=6)
+
+        inv_table_columns = ["S.NO","IMEI NO","Product","Storage","Condition","QTY","Price","Total Amount"]
+        inv_table_widths = [50,120,120,100,100,50,120,120]
+        inv_table = grid_create_treeview(table_frame,inv_table_columns,inv_table_widths,18)
 
         inv_table.bind("<Double-1>", lambda e: remove_item())
 
@@ -1165,12 +1202,13 @@ class windows:
                     "model": values[2],
                     "storage": values[3],
                     "condition": values[4],
-                    "price": values[5],
+                    "quantity": values[5],
+                    "price": values[6],
+                    "total_amount":values[7],
                     "is_mobile": stock_find.get("is_mobile"),
                     "supplier": supplier
 
                 }
-                print(row)
                 data.append(row)
 
                 profit += (int(values[5])-int(stock_find.get("purchase_price")))
@@ -1196,9 +1234,9 @@ class windows:
                 "note":note
             }
             
-            self.view_invoice(data, customer, invoice_info, on_save=reset_ui)
+            self.view_invoice(data, customer, invoice_info,"Generate", on_save=reset_ui)
         
-    def view_invoice(self, data, customer, invoice_info, on_save=None):
+    def view_invoice(self, data, customer, invoice_info,name, on_save=None):
 
         win = Toplevel(self.root)
         win.title("Invoice Preview")
@@ -1366,9 +1404,12 @@ class windows:
             self.db.save_invoice(data, customer, invoice_info, win, on_save=on_save)
             print_invoice(data, customer, invoice_info)
 
-        ttk.Button(btn_frame, text="Save", command=save_action).pack(side="left", expand=True, padx=10)
-        ttk.Button(btn_frame, text="Print", command=print_action).pack(side="left", expand=True, padx=10)
-        ttk.Button(btn_frame, text="Save & Print", command=save_print).pack(side="left", expand=True, padx=10)
+        if name == "Generate":
+            ttk.Button(btn_frame, text="Save", command=save_action).pack(side="left", expand=True, padx=10)
+            ttk.Button(btn_frame, text="Print", command=print_action).pack(side="left", expand=True, padx=10)
+            ttk.Button(btn_frame, text="Save & Print", command=save_print).pack(side="left", expand=True, padx=10)
+        elif name == "view":
+            ttk.Button(btn_frame, text="Print", command=print_action).pack(side="left", expand=True, padx=10)
 
     def sales(self):
 
@@ -1450,7 +1491,7 @@ class windows:
                     "due_date": find.get("due_date"),
                 }
 
-                self.view_invoice(data,customer,invoice_info)
+                self.view_invoice(data,customer,invoice_info,"view")
             else:
                 messagebox.showerror("Invalid Invoice","Please Select a Invoice")
 
@@ -1540,7 +1581,8 @@ class windows:
         grid_label(right_frame,"Invoice NO:",0,1,12)
         invoices = []
         for inv in self.db.sales.find():
-            invoices.append(inv.get("invoice_no"))
+            if inv.get("returned") == False:
+                invoices.append(inv.get("invoice_no"))
         inv_entry = ttk.Combobox(right_frame, values=invoices)
         inv_entry.grid(column=1,row=1,padx=5,pady=7)
         inv_entry.set("Select Invoice")
@@ -1584,6 +1626,8 @@ class windows:
         total_label = ttk.Label(total_frame,text=0.00,font=("Helvetica",19,"bold"))
         total_label.grid(row=0,column=1,pady=7)
 
+        ttk.Button(total_frame,text="Return",cursor="hand2",style="Save.TButton",command=lambda:retur(inv_table)).grid(row=1,column=0,columnspan=2,pady=7)
+
         labels ={
             "date":date_label,
             "customer_name":cus_name_entry,
@@ -1596,3 +1640,30 @@ class windows:
         }
 
         inv_entry.bind("<<ComboboxSelected>>", lambda e: invoice_details(inv_entry.get(),self.db.sales,labels,inv_table))
+
+        def retur(table):
+            invoice_no = inv_entry.get()
+            selected = get_selected(table)
+            if invoice_no == "Select Invoice" or  invoice_no.replace(" ","") == "":
+                messagebox.showwarning("Invoice Missing","No Invoice selected")
+                return
+            filter = {"invoice_no":invoice_no}
+            find = self.db.sales.find_one(filter)
+            if not find:
+                messagebox.showwarning("Invalid Invoice","Please select a valid invoice number!")
+                return
+            total_rows = len(table.get_children())
+            if total_rows == 1:
+                confirm = messagebox.askyesno("Confirm","Are you sure you wnat to Return the Invoice?")
+                if confirm:
+                    pass
+            elif total_rows > 1:
+                if not selected:
+                    confirm =  messagebox.askyesno("Confirm","Are you sure you wnat to Return the entire Invoice?")
+                    if confirm:
+                        pass
+                elif selected:
+                    confirm =  messagebox.askyesno("Confirm","Are you sure you wnat to Return the Product?")
+                    if confirm:
+                        pass
+
