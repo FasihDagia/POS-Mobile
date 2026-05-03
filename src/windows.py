@@ -1473,14 +1473,17 @@ class windows:
                         "model": prod.get("model"),
                         "storage": prod.get("storage"),
                         "condition": prod.get("condition"),
-                        "price": prod.get("price")
+                        "quantity":prod.get("quantity"),
+                        "price": prod.get("price"),
+                        "total_amount":prod.get("total_amount")
                     })
             
                 invoice_info ={
                     "invoice_no":find.get("invoice_no"),
                     "date": find.get("inv_date"),
                     "time": find.get("inv_time"),
-                    "total_inv_amount":find.get("total_inv_amount")
+                    "total_inv_amount":find.get("total_inv_amount"),
+                    "note": find.get("note")
                 }
 
                 customer = {
@@ -1616,8 +1619,8 @@ class windows:
         note_entry = ttk.Label(right_frame,text="-",font=("Helvetica",12,"bold"))
         note_entry.grid(row=7,column=1,padx=5,pady=12)
 
-        inv_table_columns = ["S.NO","IMEI NO","Product","Storage","Condition","Price"]
-        inv_table_widths = [50,120,120,100,100,120]
+        inv_table_columns = ["S.NO","IMEI NO","Product","Storage","Condition","QTY","Price","Total Amount"]
+        inv_table_widths = [50,120,120,100,100,50,120,120]
         inv_table = grid_create_treeview(left_frame,inv_table_columns,inv_table_widths,18)
 
         total_frame = Frame(entry_frame)

@@ -219,7 +219,11 @@ class database:
             description =  f"Received Payment against Invoice no:{invoice_info["invoice_no"]}"
             debit = invoice_info["total_inv_amount"]
 
-        balance = self.ledger.find_one(sort=[("_id", -1)]).get("balance",0) + debit
+        balance_find = self.ledger.find_one(sort=[("_id", -1)])
+        if balance_find:
+            balance = int(balance_find.get("balance",0)) + int(debit)
+        else:
+            balance = 0 + int(debit)
 
         ledger_det = {
             "date":invoice_info["date"],

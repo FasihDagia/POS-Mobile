@@ -151,7 +151,17 @@ def print_invoice(data, customer, invoice_info):
         title="Save Invoice As"
     )
 
-# If user cancels → stop function
+    if not file_name:
+        return
+def print_invoice(data, customer, invoice_info):
+
+    file_name = filedialog.asksaveasfilename(
+        defaultextension=".pdf",
+        initialfile=f"{invoice_info['invoice_no']}.pdf",
+        filetypes=[("PDF files", "*.pdf")],
+        title="Save Invoice As"
+    )
+
     if not file_name:
         return
 
@@ -164,16 +174,25 @@ def print_invoice(data, customer, invoice_info):
         alignment=1
     )
 
+    desc_style = ParagraphStyle(
+        name="desc",
+        fontSize=9,
+        leading=11
+    )
+
     content = []
 
-    # ================= COMPANY HEADER =================
+    # ================= HEADER =================
     content.append(Paragraph("<b>MH POINT</b>", styles["Title"]))
     content.append(Paragraph("<b>The Name of Trust</b>", styles["Title"]))
-    content.append(Paragraph("Shop # 242, Street # 11, Block-B, Baldia Complex, Mirpurkhas", center_style))
+    content.append(Paragraph(
+        "Shop # 242, Street # 11, Block-B, Baldia Complex, Mirpurkhas",
+        center_style
+    ))
     content.append(Paragraph("Phone: 0336-0601994", center_style))
     content.append(Spacer(1, 20))
 
-    # ================= CUSTOMER + INVOICE SECTION =================
+    # ================= CUSTOMER + INVOICE =================
     left_data = [
         ["Customer Name:", customer["name"]],
         ["CNIC:", customer["cnic"]],
@@ -190,77 +209,294 @@ def print_invoice(data, customer, invoice_info):
         ["Payment:", customer["payment_type"]],
     ]
 
-    info_table = Table([[Table(left_data), Table(right_data)]], colWidths=[270, 270])
+    left_table = Table(left_data, colWidths=[120, 150])
+    right_table = Table(right_data, colWidths=[120, 150])
+
+    left_table.setStyle(TableStyle([
+        ("ALIGN", (0, 0), (0, -1), "LEFT"),
+        ("ALIGN", (1, 0), (1, -1), "LEFT"),
+    ]))
+
+    right_table.setStyle(TableStyle([
+        ("ALIGN", (0, 0), (0, -1), "LEFT"),
+        ("ALIGN", (1, 0), (1, -1), "LEFT"),
+    ]))
+
+    info_table = Table([[left_table, right_table]], colWidths=[270, 270])
+    info_table.setStyle(TableStyle([
+        ("VALIGN", (0, 0), (-1, -1), "TOP"),
+    ]))
+
     content.append(info_table)
     content.append(Spacer(1, 20))
 
-    # ================= PRODUCTS TABLE =================
-    table_data = [["S.No", "Description", "Amount"]]
+    # ================= PRODUCT TABLE =================
+    table_data = [["S.No", "Description", "QTY", "Price", "Amount"]]
 
     total = 0
 
     for i, item in enumerate(data, start=1):
-        desc = item['model']
+
+        desc_text = item['model']
 
         if item.get("storage"):
-            desc += f" {item['storage']}"
+            desc_text += f" {item['storage']}"
         if item.get("condition"):
-            desc += f" {item['condition']}"
-        if item.get("imei"):
-            desc += f" (IMEI: {item['imei']})"
+            desc_text += f" {item['condition']}"
 
-        amount = float(item["price"])
+        # IMEI on next line (cleaner)
+        if item.get("imei"):
+            desc_text += f"<br/><font size=8>(IMEI: {item['imei']})</font>"
+
+        desc = Paragraph(desc_text, desc_style)
+
+        qty = item["quantity"]
+        price = float(item["price"])
+        amount = float(item["total_amount"])
+
         total += amount
 
-        table_data.append([i, desc, amount])
+        table_data.append([
+            i,
+            desc,
+            qty,
+            f"{price:,.0f}",
+            f"{amount:,.0f}"
+        ])
 
-    # TOTAL
-    table_data.append(["", "TOTAL", total])
+    # Spacer row
+    table_data.append(["", "", "", "", ""])
 
-    # CREDIT SALE CALCULATION
+    # TOTAL row
+    table_data.append(["", "", "", "TOTAL", f"{total:,.0f}"])
+
+    # CREDIT SALE
+    summary_rows = 1
     if customer["payment_type"].lower() == "credit sale":
         down_payment = float(customer.get("down_payment", 0))
         balance = total - down_payment
 
-        table_data.append(["", "Down Payment", down_payment])
-        table_data.append(["", "Balance", balance])
+        table_data.append(["", "", "", "Down Payment", f"{down_payment:,.0f}"])
+        table_data.append(["", "", "", "Balance", f"{balance:,.0f}"])
+        summary_rows = 3
 
-    product_table = Table(table_data, colWidths=[50, 350, 100])
+    # TABLE
+    product_table = Table(
+        table_data,
+        colWidths=[40, 250, 50, 70, 80]
+    )
 
-    product_table.setStyle(TableStyle([
-        ("GRID", (0, 0), (-1, -1), 1, colors.black),
+    # ================= STYLE =================
+    style = TableStyle([
+        # Header
         ("BACKGROUND", (0, 0), (-1, 0), colors.lightgrey),
-        ("ALIGN", (2, 1), (-1, -1), "RIGHT"),
         ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
-    ]))
+
+        # Alignments
+        ("ALIGN", (2, 1), (-1, -1), "RIGHT"),
+        ("ALIGN", (1, 1), (1, -1), "LEFT"),
+        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+
+        # Padding
+        ("LEFTPADDING", (0, 0), (-1, -1), 6),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 6),
+        ("TOPPADDING", (0, 0), (-1, -1), 6),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
+
+        # Grid for items only
+        ("GRID", (0, 0), (-1, -(summary_rows + 2)), 0.5, colors.grey),
+
+        # Summary styling
+        ("FONTNAME", (3, -summary_rows), (4, -1), "Helvetica-Bold"),
+        ("LINEABOVE", (3, -summary_rows), (4, -summary_rows), 2, colors.black),
+    ])
+
+    product_table.setStyle(style)
 
     content.append(product_table)
     content.append(Spacer(1, 20))
 
     # ================= NOTE =================
-    note_text = invoice_info.get("note", "").strip()
-    note_text = note_text if note_text else "-"
-
+    note_text = invoice_info.get("note", "").strip() or "-"
     content.append(Paragraph("<b>Note:</b>", styles["Heading3"]))
     content.append(Paragraph(note_text, styles["Normal"]))
     content.append(Spacer(1, 20))
 
-    # ================= FOOTER =================
+    # ================= TERMS =================
     content.append(Paragraph("Terms & Conditions:", styles["Heading3"]))
     content.append(Paragraph("Goods once sold are not returnable.", styles["Normal"]))
     content.append(Paragraph("No warranty of panel on used phones", styles["Normal"]))
     content.append(Paragraph("3 Days checking warranty on used phones", styles["Normal"]))
     content.append(Paragraph(
-        "The warranty on the box pack phones is provided by the company, The shop owner will not be responsible",
+        "The warranty on the box pack phones is provided by the company, "
+        "The shop owner will not be responsible",
         styles["Normal"]
     ))
 
     content.append(Spacer(1, 40))
     content.append(Paragraph("Signature: HUZAIFA", styles["Normal"]))
 
+    # BUILD PDF
     doc.build(content)
 
+    # PRINT
     os.startfile(file_name, "print")
+# def print_invoice(data, customer, invoice_info):
+
+#     file_name = filedialog.asksaveasfilename(
+#         defaultextension=".pdf",
+#         initialfile=f"{invoice_info['invoice_no']}.pdf",
+#         filetypes=[("PDF files", "*.pdf")],
+#         title="Save Invoice As"
+#     )
+
+# # If user cancels → stop function
+#     if not file_name:
+#         return
+
+#     doc = SimpleDocTemplate(file_name, pagesize=A4)
+#     styles = getSampleStyleSheet()
+
+#     center_style = ParagraphStyle(
+#         name="Center",
+#         parent=styles["Normal"],
+#         alignment=1
+#     )
+
+#     content = []
+
+#     # ================= COMPANY HEADER =================
+#     content.append(Paragraph("<b>MH POINT</b>", styles["Title"]))
+#     content.append(Paragraph("<b>The Name of Trust</b>", styles["Title"]))
+#     content.append(Paragraph("Shop # 242, Street # 11, Block-B, Baldia Complex, Mirpurkhas", center_style))
+#     content.append(Paragraph("Phone: 0336-0601994", center_style))
+#     content.append(Spacer(1, 20))
+
+#     # ================= CUSTOMER + INVOICE SECTION =================
+#     left_data = [
+#         ["Customer Name:", customer["name"]],
+#         ["CNIC:", customer["cnic"]],
+#     ]
+
+#     if customer["payment_type"].lower() == "credit sale":
+#         left_data.append(["Down Payment:", str(customer["down_payment"])])
+#         left_data.append(["Due Date:", customer["due_date"]])
+
+#     right_data = [
+#         ["Invoice No:", invoice_info["invoice_no"]],
+#         ["Date:", invoice_info["date"]],
+#         ["Time:", invoice_info["time"]],
+#         ["Payment:", customer["payment_type"]],
+#     ]
+
+#     info_table = Table([[Table(left_data), Table(right_data)]], colWidths=[270, 270])
+#     content.append(info_table)
+#     content.append(Spacer(1, 20))
+
+#     # TABLE HEADER
+#     table_data = [["S.No", "Description", "QTY", "Price", "Amount"]]
+
+#     total = 0
+
+#     # LOOP THROUGH ITEMS
+#     for i, item in enumerate(data, start=1):
+#         desc = item['model']
+
+#         if item.get("storage"):
+#             desc += f" {item['storage']}"
+#         if item.get("condition"):
+#             desc += f" {item['condition']}"
+#         if item.get("imei"):
+#             desc += f" (IMEI: {item['imei']})"
+
+#         qty = item["quantity"]
+#         price = float(item["price"])
+#         amount = float(item["total_amount"])
+
+#         total += amount
+
+#         table_data.append([
+#             i,
+#             desc,
+#             qty,
+#             f"{price:,.0f}",
+#             f"{amount:,.0f}"
+#         ])
+
+#     # EMPTY ROW (spacing before totals)
+#     table_data.append(["", "", "", "", ""])
+
+#     # TOTAL ROW
+#     table_data.append(["", "", "", "TOTAL", f"{total:,.0f}"])
+
+#     # CREDIT SALE CALCULATION
+#     if customer["payment_type"].lower() == "credit sale":
+#         down_payment = float(customer.get("down_payment", 0))
+#         balance = total - down_payment
+
+#         table_data.append(["", "", "", "Down Payment", f"{down_payment:,.0f}"])
+#         table_data.append(["", "", "", "Balance", f"{balance:,.0f}"])
+
+#     # CREATE TABLE (5 columns!)
+#     product_table = Table(
+#         table_data,
+#         colWidths=[40, 250, 30, 80, 90]
+#     )
+
+#     # STYLE
+#     style = TableStyle([
+#         # Grid
+#         ("GRID", (0, 0), (-1, -2), 0.5, colors.grey),
+
+#         # Header
+#         ("BACKGROUND", (0, 0), (-1, 0), colors.lightgrey),
+#         ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+
+#         # Alignment
+#         ("ALIGN", (2, 1), (-1, -1), "RIGHT"),
+
+#         # Description left align
+#         ("ALIGN", (1, 1), (1, -1), "LEFT"),
+
+#         # TOTAL section styling
+#         ("FONTNAME", (3, -1), (4, -1), "Helvetica-Bold"),
+#         ("LINEABOVE", (3, -1), (4, -1), 2, colors.black),
+#     ])
+
+#     # If credit sale → style last 3 rows
+#     if customer["payment_type"].lower() == "credit sale":
+#         style.add("FONTNAME", (3, -3), (4, -1), "Helvetica-Bold")
+#         style.add("LINEABOVE", (3, -3), (4, -3), 2, colors.black)
+
+#     product_table.setStyle(style)
+
+#     content.append(product_table)
+#     content.append(Spacer(1, 20))
+
+#     # ================= NOTE =================
+#     note_text = invoice_info.get("note", "").strip()
+#     note_text = note_text if note_text else "-"
+
+#     content.append(Paragraph("<b>Note:</b>", styles["Heading3"]))
+#     content.append(Paragraph(note_text, styles["Normal"]))
+#     content.append(Spacer(1, 20))
+
+#     # ================= FOOTER =================
+#     content.append(Paragraph("Terms & Conditions:", styles["Heading3"]))
+#     content.append(Paragraph("Goods once sold are not returnable.", styles["Normal"]))
+#     content.append(Paragraph("No warranty of panel on used phones", styles["Normal"]))
+#     content.append(Paragraph("3 Days checking warranty on used phones", styles["Normal"]))
+#     content.append(Paragraph(
+#         "The warranty on the box pack phones is provided by the company, The shop owner will not be responsible",
+#         styles["Normal"]
+#     ))
+
+#     content.append(Spacer(1, 40))
+#     content.append(Paragraph("Signature: HUZAIFA", styles["Normal"]))
+
+#     doc.build(content)
+
+#     os.startfile(file_name, "print")
     
 def add_placeholder(entry, text):
             entry.delete(0, END)
@@ -409,6 +645,8 @@ def invoice_details(inv_no,db,labels,table):
                 row["model"],
                 row["storage"],
                 row["condition"],
-                row["price"]
+                row["quantity"],
+                row["price"],
+                row["total_amount"]
             ))
             s_no+=1
