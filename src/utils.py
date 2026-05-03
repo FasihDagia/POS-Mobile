@@ -256,13 +256,10 @@ def print_invoice(data, customer, invoice_info):
     ))
 
     content.append(Spacer(1, 40))
-    content.append(Paragraph("Signature: ____________________", styles["Normal"]))
+    content.append(Paragraph("Signature: HUZAIFA", styles["Normal"]))
 
-    # ================= BUILD =================
     doc.build(content)
 
-    # ================= AUTO PRINT =================
-    import os
     os.startfile(file_name, "print")
     
 def add_placeholder(entry, text):

@@ -1388,7 +1388,7 @@ class windows:
             justify="left"
         ).pack(anchor="w")
 
-        ttk.Label(main, text="Signature: ____________________", background="white").pack(pady=20)
+        ttk.Label(main, text="Signature: HUZAIFA", background="white").pack(pady=20)
 
         # --- Fixed Bottom Buttons ---
         btn_frame = Frame(win, bg="white")

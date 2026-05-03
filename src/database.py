@@ -212,6 +212,23 @@ class database:
             "status": "unsettled"
         }
 
+        if customer["payment_type"] == "Credit Sale":
+            description = f"Received Partial Payment against Invoice no:{invoice_info["invoice_no"]}"
+            debit = customer["down_payment"]
+        else:
+            description =  f"Received Payment against Invoice no:{invoice_info["invoice_no"]}"
+            debit = invoice_info["total_inv_amount"]
+
+        balance = self.ledger.find_one(sort=[("_id", -1)]).get("balance",0) + debit
+
+        ledger_det = {
+            "date":invoice_info["date"],
+            "description": description,
+            "debit":debit,
+            "credit":0,
+            "balance":balance
+        }   
+
         for item in data:
             filter1 = {
                 "model": str(item["model"]),
@@ -260,11 +277,9 @@ class database:
                     {"_id": stck_find["_id"]},
                     {"$set": {"quantity": new_quantity}}
                 )
-
-        # 👉 Save sale
+        
         self.sales.insert_one(details)
 
-        # 👉 Credit handling
         if customer["payment_type"] == "Credit Sale":
             self.credit_accounts_history.insert_one(details_cr)
 
@@ -290,6 +305,7 @@ class database:
             else:
                 self.credit_accounts.insert_one(details_cr)
 
+        self.ledger.insert_one(ledger_det)
         messagebox.showinfo("Success", "Invoice Saved successfully!")
 
         if on_save:
@@ -375,23 +391,3 @@ class database:
                     ))
                 s_no+=1
 
-    # def load_cr_acc_history(self,row,table):
-        
-    #     for ro in table.get_children():
-    #         table.delete(ro)
-
-    #     filter ={
-    #         "customer_name":row[3],
-    #         "customer_cnic":row[4]
-    #     }
-
-    #     history = self.credit_accounts_history.find(filter)
-    #     s_no = 1
-    #     for entry in history:
-    #         table.insert("",END,values=(
-    #             s_no,
-    #             entry.get("inv_date"),
-    #             entry.get("down_payment"),
-    #             entry.get("balance")
-    #         )) 
-    #         s_no+=1
