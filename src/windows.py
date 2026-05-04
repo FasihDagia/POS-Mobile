@@ -2,7 +2,7 @@ from tkinter import ttk,messagebox,Frame,Toplevel,PhotoImage,END,Canvas,BooleanV
 from tkinter import *
 from src.database import database
 from src.utils import center_window,destroy_widgets,create_treeview,get_selected,grid_label,grid_create_treeview,print_invoice,add_placeholder,resource_path,remove_stock,validate_frame,stk_delete,stk_update
-from src.utils import invoice_details
+from src.utils import invoice_details,product_details
 from datetime import date,datetime
 from tkcalendar import DateEntry
 
@@ -1200,7 +1200,7 @@ class windows:
                 row = {
                     "imei": str(values[1]),
                     "model": values[2],
-                    "storage": values[3],
+                    "storage": str(values[3]),
                     "condition": values[4],
                     "quantity": values[5],
                     "price": values[6],
@@ -1324,8 +1324,8 @@ class windows:
         table_frame = Frame(main, bg="white")
         table_frame.pack(fill="both", expand=True)
 
-        tree_columns = ["S.No", "Description", "Amount"]
-        tree_columns_width = [50, 300, 200]
+        tree_columns = ["S.No", "Description", "QTY", "Price", "Total Amount"]
+        tree_columns_width = [40, 300, 40, 100, 100]
         tree = create_treeview(table_frame, tree_columns, tree_columns_width, 5)
 
         total = 0
@@ -1340,19 +1340,21 @@ class windows:
             if item.get("imei"):
                 desc += f" (IMEI: {item['imei']})"
 
-            amount = float(item["price"])
+            price = float(item["price"])
+            qty = item["quantity"]
+            amount = float(item["total_amount"])
             total += amount
 
-            tree.insert("", "end", values=(i, desc, amount))
+            tree.insert("", "end", values=(i, desc, qty, price, amount))
 
-        tree.insert("", "end", values=("", "TOTAL", total))
+        tree.insert("", "end", values=("", "","","TOTAL", total))
 
         if customer["payment_type"].lower() == "credit sale":
             down_payment = float(customer.get("down_payment", 0))
             balance = total - down_payment
 
-            tree.insert("", "end", values=("", "Down Payment", down_payment))
-            tree.insert("", "end", values=("", "Balance", balance))
+            tree.insert("", "end", values=("", "","","Down Payment", down_payment))
+            tree.insert("", "end", values=("", "","","Balance", balance))
 
         tree.pack(fill="both", expand=True)
 
@@ -1552,7 +1554,7 @@ class windows:
         
         destroy_widgets(self.root)
 
-        center_window(self.root, 1170,650)
+        center_window(self.root, 800,650)
         self.root.title("Return Invoice")
 
         style = ttk.Style()
@@ -1566,70 +1568,103 @@ class windows:
         bk_btn.image = smaller_img
         bk_btn.pack(anchor="nw", padx=10, pady=10)
 
+        ttk.Label(self.root,text="Return Invoice",font=("Helvetica",20,"bold")).pack()
+        font=("Helvetica",10,"bold")
+        font1=("Helvetica",12,"bold")
+
         entry_frame =Frame(self.root)
         entry_frame.pack(pady=15,padx=10)
 
-        ttk.Label(entry_frame,text="Return Invoice",font=("Helvetica",20,"bold")).grid(row=0,column=0,columnspan=2,pady=7)
-    
-        right_frame = Frame(entry_frame)
-        right_frame.grid(row=1,column=0,padx=10,sticky="ns")
+        ttk.Label(entry_frame,text="Invoice Details",font=("Helvetica",15,"bold")).grid(row=0,column=0,columnspan=4,pady=10)    
 
-        left_frame = Frame(entry_frame)
-        left_frame.grid(row=1,column=1,padx=10,rowspan=2)
-
-        grid_label(right_frame,"Date:",0,0,12)
-        date_label = ttk.Label(right_frame,text="-",font=("Helvetica",12,"bold"))
-        date_label.grid(row=0,column=1,padx=5)
-
-        grid_label(right_frame,"Invoice NO:",0,1,12)
+        ttk.Label(entry_frame,text="Invoice NO", font =font1).grid(row=1,column=0,padx=5,sticky="w")
         invoices = []
         for inv in self.db.sales.find():
             if inv.get("returned") == False:
                 invoices.append(inv.get("invoice_no"))
-        inv_entry = ttk.Combobox(right_frame, values=invoices)
+        inv_entry = ttk.Combobox(entry_frame, values=invoices)
         inv_entry.grid(column=1,row=1,padx=5,pady=7)
         inv_entry.set("Select Invoice")
         
+        ttk.Label(entry_frame,text="Date", font =font1).grid(row=1,column=2,padx=5,sticky="w")
+        date_label = ttk.Label(entry_frame,text="-",font=font)
+        date_label.grid(row=1,column=3,padx=5)
         
-        grid_label(right_frame,"Customer Name:",0,2,12)
-        cus_name_entry = ttk.Label(right_frame,text="-",font=("Helvetica",12,"bold"))
+        ttk.Label(entry_frame,text="Customer Name", font =font1).grid(row=2,column=0,padx=5,sticky="w")
+        cus_name_entry = ttk.Label(entry_frame,text="-",font=font)
         cus_name_entry.grid(row=2,column=1,padx=5)
         
-        grid_label(right_frame,"Customer CNIC:",0,3,12)
-        cus_cnic_entry = ttk.Label(right_frame,text="-",font=("Helvetica",12,"bold"))
-        cus_cnic_entry.grid(row=3,column=1,padx=5)
+        ttk.Label(entry_frame,text="Customer CNIC", font =font1).grid(row=2,column=2,padx=5,sticky="w")        
+        cus_cnic_entry = ttk.Label(entry_frame,text="-",font=font)
+        cus_cnic_entry.grid(row=2,column=3,padx=5)
         
-        grid_label(right_frame,"Payment Type:",0,4,12)
-        pay_ty_entry =  ttk.Label(right_frame,text="-",font=("Helvetica",12,"bold"))
-        pay_ty_entry.grid(row=4,column=1,padx=5,pady=10)
+        ttk.Label(entry_frame,text="Payment Type", font =font1).grid(row=3,column=0,padx=5,sticky="w")        
+        pay_ty_entry =  ttk.Label(entry_frame,text="-",font=font)
+        pay_ty_entry.grid(row=3,column=1,padx=5,pady=10)
 
-        dw_pay_label = ttk.Label(right_frame,text="Down Payment:",font=("Helvetica",12,"bold"))
-        dw_pay_entry =  ttk.Label(right_frame,text="-",font=("Helvetica",12,"bold"))
+        dw_pay_label = ttk.Label(entry_frame,text="Down Payment:",font=("Helvetica",12,"bold"))
+        dw_pay_entry =  ttk.Label(entry_frame,text="-",font=font)
 
-        dw_pay_label.grid(row=5,column=0,padx=5,pady=7)
-        dw_pay_entry.grid(row=5,column=1,padx=5)
+        dw_pay_label.grid(row=3,column=2,padx=5,pady=7,sticky="w")
+        dw_pay_entry.grid(row=3,column=3,padx=5)
         
-        nt_du_dt_label = ttk.Label(right_frame,text="Due Date:",font=("Helvetica",12,"bold"))
-        nt_du_dt_entry =  ttk.Label(right_frame,text="-",font=("Helvetica",12,"bold"))
+        nt_du_dt_label = ttk.Label(entry_frame,text="Due Date:",font=("Helvetica",12,"bold"))
+        nt_du_dt_entry =  ttk.Label(entry_frame,text="-",font=font)
 
-        nt_du_dt_label.grid(row=6,column=0,padx=5,pady=7)
-        nt_du_dt_entry.grid(row=6,column=1,padx=5)
+        nt_du_dt_label.grid(row=4,column=0,padx=5,pady=7,sticky="w")
+        nt_du_dt_entry.grid(row=4,column=1,padx=5)
 
-        grid_label(right_frame,"Note:",0,7,12)
-        note_entry = ttk.Label(right_frame,text="-",font=("Helvetica",12,"bold"))
-        note_entry.grid(row=7,column=1,padx=5,pady=12)
+        ttk.Label(entry_frame,text="Product Details",font=("Helvetica",15,"bold")).grid(row=5,column=0,columnspan=4,pady=10)
 
-        inv_table_columns = ["S.NO","IMEI NO","Product","Storage","Condition","QTY","Price","Total Amount"]
-        inv_table_widths = [50,120,120,100,100,50,120,120]
-        inv_table = grid_create_treeview(left_frame,inv_table_columns,inv_table_widths,18)
+        product_frame = Frame(entry_frame)
+        product_frame.grid(row=6,column=0,columnspan=4)
 
-        total_frame = Frame(entry_frame)
-        total_frame.grid(pady=7,row=2,column=0)
-        grid_label(total_frame,"Total",0,0,19)
-        total_label = ttk.Label(total_frame,text=0.00,font=("Helvetica",19,"bold"))
-        total_label.grid(row=0,column=1,pady=7)
+        ttk.Label(product_frame,text="Product",font=font).grid(row=0,column=0,padx=5,pady=10)
+        products = ["Select Invoice"]
+        products_entry = ttk.Combobox(product_frame, values=products)
+        products_entry.grid(row=0,column=1,padx=5,pady=10)
+        products_entry.set("Select Product")
 
-        ttk.Button(total_frame,text="Return",cursor="hand2",style="Save.TButton",command=lambda:retur(inv_table)).grid(row=1,column=0,columnspan=2,pady=7)
+        ttk.Label(product_frame,text="Quantity",font=font).grid(row=0,column=2,padx=5,pady=10)
+        quantity_entry = ttk.Entry(product_frame,font=font)
+        quantity_entry.grid(row=0,column=3,padx=5,pady=10)
+
+        ttk.Label(product_frame,text="Storage",font=font).grid(row=1,column=0,padx=5,pady=10)
+        storage_entry = ttk.Entry(product_frame,font=font)
+        storage_entry.grid(row=1,column=1,padx=5,pady=10)
+
+        ttk.Label(product_frame,text="Condition",font=font).grid(row=1,column=2,padx=5,pady=10)
+        condition_entry = ttk.Entry(product_frame,font=font)
+        condition_entry.grid(row=1,column=3,padx=5,pady=10)
+
+        ttk.Label(product_frame,text="IMEI No",font=font).grid(row=2,column=0,padx=5,pady=10)
+        imei_entry = ttk.Entry(product_frame,font=font)
+        imei_entry.grid(row=2,column=1,padx=5,pady=10)
+
+        ttk.Label(product_frame,text="Price",font=font).grid(row=2,column=2,padx=5,pady=10)
+        price_entry = ttk.Entry(product_frame,font=font)
+        price_entry.grid(row=2,column=3,padx=5,pady=10)
+        
+        ttk.Label(product_frame,text="Product Total:",font=font).grid(row=3,column=1,padx=5,pady=10)
+        amount_entry = ttk.Label(product_frame,text="0.00",font=font)
+        amount_entry.grid(row=3,column=2,padx=5,pady=10)
+        
+        prod_labels={
+            "quantity":quantity_entry,
+            "storage":storage_entry,
+            "condition":condition_entry,
+            "imei": imei_entry,
+            "price": price_entry,
+            "total_amount":amount_entry
+        }
+
+        products_entry.bind("<<ComboboxSelected>>", lambda e: product_details(products_entry.get(),prod_labels,inv_entry.get(),self.db.sales))
+
+        grid_label(entry_frame,"Invoice Total",0,7,19)
+        total_label = ttk.Label(entry_frame,text=0.00,font=("Helvetica",19,"bold"))
+        total_label.grid(row=7,column=1,pady=7,columnspan=3)
+
+        ttk.Button(entry_frame,text="Return",cursor="hand2",style="Save.TButton",command=lambda:retur()).grid(row=8,column=0,columnspan=4,pady=7)
 
         labels ={
             "date":date_label,
@@ -1638,35 +1673,79 @@ class windows:
             "payment_type":pay_ty_entry,
             "down_payment":dw_pay_entry,
             "next_due_date":nt_du_dt_entry,
-            "note":note_entry,
-            "total_invoice_amount":total_label
+            "total_invoice_amount":total_label,
+            "products":products_entry
         }
 
-        inv_entry.bind("<<ComboboxSelected>>", lambda e: invoice_details(inv_entry.get(),self.db.sales,labels,inv_table))
+        inv_entry.bind("<<ComboboxSelected>>", lambda e: invoice_details(inv_entry.get(),self.db.sales,labels))
 
-        def retur(table):
+        def retur():
             invoice_no = inv_entry.get()
-            selected = get_selected(table)
+            
             if invoice_no == "Select Invoice" or  invoice_no.replace(" ","") == "":
                 messagebox.showwarning("Invoice Missing","No Invoice selected")
                 return
+            
             filter = {"invoice_no":invoice_no}
             find = self.db.sales.find_one(filter)
+            
             if not find:
                 messagebox.showwarning("Invalid Invoice","Please select a valid invoice number!")
                 return
-            total_rows = len(table.get_children())
-            if total_rows == 1:
-                confirm = messagebox.askyesno("Confirm","Are you sure you wnat to Return the Invoice?")
-                if confirm:
-                    pass
-            elif total_rows > 1:
-                if not selected:
-                    confirm =  messagebox.askyesno("Confirm","Are you sure you wnat to Return the entire Invoice?")
-                    if confirm:
-                        pass
-                elif selected:
-                    confirm =  messagebox.askyesno("Confirm","Are you sure you wnat to Return the Product?")
-                    if confirm:
-                        pass
 
+            product = products_entry.get()
+
+            if product == "Select Product":
+                messagebox.showwarning("Invalid Product","Please Select a Valid Product or Whole Invoice to return!")
+                return
+
+            if product == "Select Invoice":
+                messagebox.showwarning("Missing Invoice","Please Select a Invoice NO")
+                return
+
+            if product == "Invoice":
+                confirm = messagebox.askyesno("Confirm Return","Are you sure you want to return the entire invoice?")
+                if confirm:
+                    purchased_items = find.get("purchased_items")
+                    
+                    find["returned"] = True
+                    find["return_type"] = "Full Invoice"
+
+                    self.db.returned_invoices.insert_one(find)
+                    
+                    for item in purchased_items:
+                        self.db.returned_invoice(invoice_no,item.get("model"),item.get("quantity"))
+                    
+                    
+                    #ledger entry
+                    now = datetime.now()
+                    date = f"{now.strftime("%Y-%m-%d")}"
+                    description = f"Paid Amount against returned Invoice No {invoice_no}"
+                    
+                    if find.get("payment_type") == "Credit Sale":
+                        amount = int(find.get("down_payment"))
+                    else:
+                        amount = int(find.get("total_inv_amount"))
+
+                    balance_find = self.db.ledger.find_one(sort=[("_id", -1)])
+                    if balance_find:
+                        balance = int(balance_find.get("balance",0)) - amount
+                    else:
+                        balance = 0 - amount
+
+                    details = {
+                        "date":date,
+                        "description":description,
+                        "debit":0,
+                        "credit":amount,
+                        "balance":balance
+                    }
+                    
+                    self.db.ledger.insert_one(details)
+                    self.db.sales.update_one(filter,{"$set":{"returned":True,"return_type":"Full Invoice"}})
+                
+
+                    messagebox.showinfo("Return Success","Invoice Returned Succesfully")
+            else:
+                pass
+            

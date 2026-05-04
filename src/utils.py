@@ -454,7 +454,7 @@ def stk_update(filter1,selected,dialog,db,table_stocks):
         values[6] = purchase_price
         table_stocks.item(item_id, values=values)
 
-def invoice_details(inv_no,db,labels,table):
+def invoice_details(inv_no,db,labels):
     invoice = db.find_one({"invoice_no":inv_no})
 
     if invoice:
@@ -465,21 +465,36 @@ def invoice_details(inv_no,db,labels,table):
         labels["down_payment"].config(text=invoice.get("down_payment"))
         labels["next_due_date"].config(text=invoice.get("due_date"))
         labels["total_invoice_amount"].config(text=invoice.get("total_inv_amount"))
-        labels["note"].config(text=invoice.get("note"))
 
-        for row in table.get_children():
-            table.delete(row)
-        
-        s_no = 1
-        for row in invoice.get("purchased_items"):
-            table.insert("", END,values=(
-                s_no,
-                row["imei"],
-                row["model"],
-                row["storage"],
-                row["condition"],
-                row["quantity"],
-                row["price"],
-                row["total_amount"]
-            ))
-            s_no+=1
+        purchased_items = invoice.get("purchased_items")
+        products = ["Invoice"]
+        for item in purchased_items:
+            products.append(item.get("model"))
+
+            labels["products"]["values"] = products
+
+def product_details(product,prod_labels,inv_no,db):
+    invoice = db.find_one({"invoice_no":inv_no})
+
+    if product != "Select Invoice" or  product != "Select Product":
+        if product == "Invoice":
+            for sett in prod_labels:
+                prod_labels[sett].config(state="disabled")
+        else:
+            for sett in prod_labels:
+                prod_labels[sett].config(state="!disabled")
+
+            purchased_items = invoice.get("purchased_items")
+            for items in purchased_items:
+                if items.get("model") == product:
+                    for sett in prod_labels:
+                        if sett == "total_amount":
+                            prod_labels[sett].config(text=items.get(sett))
+                        else:
+                            
+                            prod_labels[sett].delete(0,'end')    
+                            prod_labels[sett].insert(0,items.get(sett))
+                        if sett == "quantity" and int(items.get(sett)) > 1:
+                            prod_labels[sett].config(state="!disabled")
+                        else:
+                            prod_labels[sett].config(state="disabled")

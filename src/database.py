@@ -40,6 +40,7 @@ class database:
         self.sales = self.db["sales"]
         self.auth = self.db["auth"]
         self.ledger = self.db["ledger"]
+        self.returned_invoices = self.db["returned_invoices"]
     
     def hash_password(self, password):
         return hashlib.sha256(password.encode()).hexdigest()
@@ -126,17 +127,18 @@ class database:
 
         s_no =1
         for entry in entries:
-            table.insert("", END,values=(
-                s_no,
-                entry.get("purchase_date"),
-                entry.get("model"),
-                entry.get("storage"),
-                entry.get("quantity"),
-                entry.get("condition"),
-                entry.get("purchase_price"),
-                entry.get("sell_price"),
-            ))
-            s_no+=1
+            if entry.get("quantity") > 0:
+                table.insert("", END,values=(
+                    s_no,
+                    entry.get("purchase_date"),
+                    entry.get("model"),
+                    entry.get("storage"),
+                    entry.get("quantity"),
+                    entry.get("condition"),
+                    entry.get("purchase_price"),
+                    entry.get("sell_price"),
+                ))
+                s_no+=1
 
     def load_imei(self,row,table,supplier):
         suply = supplier.get()
@@ -257,12 +259,6 @@ class database:
                             {"$pull": {f"imei_nos.{supplier}": imei_to_delete}}
                         )
 
-                        # Remove supplier key if empty
-                        if len(imei_list) == 1:
-                            self.stock.update_one(
-                                {"_id": stck_find["_id"]},
-                                {"$unset": {f"imei_nos.{supplier}": ""}}
-                            )
                         break
 
                 updated_doc = self.stock.find_one({"_id": stck_find["_id"]})
@@ -274,13 +270,11 @@ class database:
                 qty_sold = int(item.get("quantity", 1))
                 new_quantity = int(stck_find.get("quantity", 0)) - qty_sold
 
-            if new_quantity <= 0:
-                self.stock.delete_one({"_id": stck_find["_id"]})
-            else:
-                self.stock.update_one(
-                    {"_id": stck_find["_id"]},
-                    {"$set": {"quantity": new_quantity}}
-                )
+
+            self.stock.update_one(
+                {"_id": stck_find["_id"]},
+                {"$set": {"quantity": new_quantity}}
+            )
         
         self.sales.insert_one(details)
 
@@ -394,4 +388,79 @@ class database:
                         entry.get("down_payment"),
                     ))
                 s_no+=1
+
+    def returned_invoice(self,invoice_no,product,quantity):
+        filter={
+            "invoice_no":invoice_no
+        }
+        find = self.sales.find_one(filter)
+        purchased_items = find.get("purchased_items")
+        for items in purchased_items:
+            if items.get("model") == product:
+                if items.get("is_mobile") == True:
+
+                    imei = items.get("imei")
+                    supplier = items.get("supplier")
+                    model = items.get("model")
+                    condition = items.get("condition")
+                    storage = str(items.get("storage"))
+                    
+                    filter1 ={
+                        "model":model,
+                        "condition":condition,
+                        "storage":storage
+                    }
+
+                    self.stock.update_one(filter1,
+                                          {"$addToSet": {f"imei_nos.{supplier}": imei},
+                                           "$inc": {"quantity": 1}})
+
+                    self.sales.update_one(filter,{"$pull": {"purchased_items": {
+                        "imei": items.get("imei"),
+                        "model":  items.get("model"),
+                        "storage":  items.get("storage"),
+                        "condition":  items.get("condition"),
+                        "quantity":  items.get("quantity"),
+                        "price":  items.get("price"),
+                        "total_amount":  items.get("total_amount"),
+                        "is_mobile":  items.get("is_mobile"),
+                        "supplier":  items.get("supplier")
+                    }}})
+
+                elif items.get("is_mobile") == False:        
+                    model = items.get("model")
+
+                    filter2 = {
+                        "model":model
+                    }
+                    new_quantity = int(self.stock.find_one(filter2).get("quantity")) + quantity
+
+                    self.stock.update_one(filter2,{"$set": {"quantity": new_quantity}})
+
+                    if items.get("quantity") == quantity:
+                        self.sales.update_one(filter,{"$pull": {"purchased_items": {
+                            "imei": items.get("imei"),
+                            "model":  items.get("model"),
+                            "storage":  items.get("storage"),
+                            "condition":  items.get("condition"),
+                            "quantity":  items.get("quantity"),
+                            "price":  items.get("price"),
+                            "total_amount":  items.get("total_amount"),
+                            "is_mobile":  items.get("is_mobile"),
+                            "supplier":  items.get("supplier")
+                        }}})
+                    else:
+                        self.sales.update_one(filter,{"$pull": {"purchased_items": {
+                            "imei": items.get("imei"),
+                            "model":  items.get("model"),
+                            "storage":  items.get("storage"),
+                            "condition":  items.get("condition"),
+                            "quantity":  int(items.get("quantity")) - quantity,
+                            "price":  items.get("price"),
+                            "total_amount":  (int(items.get("quantity")) - quantity)*int(items.get("price")),
+                            "is_mobile":  items.get("is_mobile"),
+                            "supplier":  items.get("supplier")
+                        }}})
+
+            break
 
