@@ -1159,7 +1159,7 @@ class windows:
             balance = 0
             
             if pay_ty_entry.get() == "Credit Sale":
-                dw_pay = dw_pay_entry.get()
+                dw_pay = int(dw_pay_entry.get())
                 nt_du_dt = nt_du_dt_entry.get()
             else:
                 dw_pay = 0
@@ -1211,10 +1211,10 @@ class windows:
                 }
                 data.append(row)
 
-                profit += (int(values[5])-int(stock_find.get("purchase_price")))
-                balance += (int(values[5])-int(dw_pay))
+                profit += (int(values[7])-(int(stock_find.get("purchase_price"))*int(values[5])))
                 
-
+            tot_inv_amount = int(total_label.cget("text"))
+            balance = tot_inv_amount-dw_pay
             customer = {
                 "name" : customer_name,
                 "cnic": customer_cnic,
@@ -1550,7 +1550,7 @@ class windows:
                     tot_sale_label.config(text=total_invoice_amount)
                     amt_recev_label.config(text=amount_received)
 
-    def return_invoice(self):
+    def return_invoice(self): 
         
         destroy_widgets(self.root)
 
@@ -1702,20 +1702,20 @@ class windows:
             if product == "Select Invoice":
                 messagebox.showwarning("Missing Invoice","Please Select a Invoice NO")
                 return
+            
+            filter_cr_acc= {
+                "customer_name": find.get("customer_name"),
+                "customer_cnic": find.get("customer_cnic")
+            }
+            cr_acc_find = self.db.credit_accounts.find_one(filter_cr_acc)
 
             if product == "Invoice":
                 confirm = messagebox.askyesno("Confirm Return","Are you sure you want to return the entire invoice?")
                 if confirm:
                     purchased_items = find.get("purchased_items")
                     
-                    find["returned"] = True
-                    find["return_type"] = "Full Invoice"
-
-                    self.db.returned_invoices.insert_one(find)
-                    
                     for item in purchased_items:
                         self.db.returned_invoice(invoice_no,item.get("model"),item.get("quantity"))
-                    
                     
                     #ledger entry
                     now = datetime.now()
@@ -1724,6 +1724,11 @@ class windows:
                     
                     if find.get("payment_type") == "Credit Sale":
                         amount = int(find.get("down_payment"))
+                        if cr_acc_find:
+                            inv_balance = int(find.get("inv_balance"))
+                            cr_bal = int(cr_acc_find.get("balance"))
+                            self.db.credit_accounts.update_one(filter_cr_acc,{"$set":{"balance":cr_bal-inv_balance}})
+
                     else:
                         amount = int(find.get("total_inv_amount"))
 
@@ -1743,9 +1748,73 @@ class windows:
                     
                     self.db.ledger.insert_one(details)
                     self.db.sales.update_one(filter,{"$set":{"returned":True,"return_type":"Full Invoice"}})
-                
+                    self.db.returned_invoices.update_one(filter,{"$set":{"returned":True,"return_type":"Full Invoice"}})
 
                     messagebox.showinfo("Return Success","Invoice Returned Succesfully")
             else:
-                pass
-            
+                confirm = messagebox.askyesno("Confirm Return",f"Are you sure you want to return the product from the Invoice?")
+                if confirm:
+                    purchased_items = find.get("purchased_items")
+                    quantity = quantity_entry.get()
+                    price = price_entry.get()
+                    for item in purchased_items:
+                        if item.get("model") == product:
+                            if quantity > item.get("quantity"):
+                                messagebox.showerror("Invalid Quantity","Can't return more quantity than bought!")
+                                return
+                            
+                    self.db.returned_invoice(invoice_no,product,quantity)
+
+                    amount = price *int(quantity)
+                    if find.get("payment_type") == "Credit Sale":
+                        down_payment = int(find.get("down_payment"))
+                        tot_inv_amount = int(find.get("total_inv_amount"))
+                        inv_balance = int(find.get("inv_balance"))
+                        remaining_product_amount = tot_inv_amount - amount
+                        if remaining_product_amount > down_payment:
+                            amount = 0
+                            if cr_acc_find:
+                                new_inv_bal = remaining_product_amount - down_payment
+                                new_cr_bal = inv_balance - new_inv_bal 
+                                cr_bal = int(cr_acc_find.get("balance"))
+                                self.db.credit_accounts.update_one(filter_cr_acc,{"$set":{"balance":cr_bal-new_cr_bal}})
+                                self.db.sales.update_one(filter,{"$set":{"inv_balance":new_inv_bal}})
+                        elif remaining_product_amount < down_payment:
+                            amount = down_payment - remaining_product_amount  
+                            if cr_acc_find:
+                                cr_bal = int(cr_acc_find.get("balance"))
+                                new_cr_bal = cr_bal - inv_balance
+                                self.db.credit_accounts.update_one(filter_cr_acc,{"$set":{"balance":cr_bal-new_cr_bal}})
+                                self.db.sales.update_one(filter,{"$set":{"inv_balance":0}})
+                        elif remaining_product_amount == down_payment:
+                            amount = 0
+                            if cr_acc_find:
+                                cr_bal = int(cr_acc_find.get("balance"))
+                                new_cr_bal = cr_bal - inv_balance
+                                self.db.credit_accounts.update_one(filter_cr_acc,{"$set":{"balance":cr_bal-new_cr_bal}})
+                                self.db.sales.update_one(filter,{"$set":{"inv_balance":0}})
+
+                    if amount > 0 :
+                        balance_find = self.db.ledger.find_one(sort=[("_id", -1)])
+                        if balance_find:
+                            balance = int(balance_find.get("balance",0)) - amount
+                        else:
+                            balance = 0 - amount
+
+                        now = datetime.now()
+                        date = f"{now.strftime("%Y-%m-%d")}"
+                        description = f"Paid Amount against returned Invoice No {invoice_no}"
+
+                        details = {
+                            "date":date,
+                            "description":description,
+                            "debit":0,
+                            "credit":amount,
+                            "balance":balance
+                        }
+
+                        self.db.ledger.insert_one(details)
+                        self.db.sales.update_one(filter,{"$set":{"returned":True,"return_type":"Partial Return"}})
+                        
+
+                        

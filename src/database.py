@@ -194,21 +194,17 @@ class database:
             "due_date": customer["due_date"],
             "purchased_items": data,
             "total_inv_amount": invoice_info["total_inv_amount"],
+            "inv_balance": customer["balance"],
             "profit": invoice_info["profit"],
             "note": invoice_info["note"],
             "returned": False
         }
 
         details_cr = {
-            "invoice_no": invoice_info["invoice_no"],
-            "inv_date": invoice_info["date"],
-            "inv_time": invoice_info["time"],
             "customer_name": customer["name"],
             "customer_cnic": customer["cnic"],
-            "payment_type": customer["payment_type"],
             "down_payment": customer["down_payment"],
             "due_date": customer["due_date"],
-            "purchased_items": data,
             "total_amount_paid": customer["down_payment"],
             "balance": customer["balance"],
             "status": "unsettled"
@@ -415,7 +411,7 @@ class database:
                                           {"$addToSet": {f"imei_nos.{supplier}": imei},
                                            "$inc": {"quantity": 1}})
 
-                    self.sales.update_one(filter,{"$pull": {"purchased_items": {
+                    item = {
                         "imei": items.get("imei"),
                         "model":  items.get("model"),
                         "storage":  items.get("storage"),
@@ -425,7 +421,22 @@ class database:
                         "total_amount":  items.get("total_amount"),
                         "is_mobile":  items.get("is_mobile"),
                         "supplier":  items.get("supplier")
-                    }}})
+                    }
+
+                    self.sales.update_one(filter,{"$pull": {"purchased_items": item}})
+
+                    return_find = self.returned_invoices.find_one(filter)
+                    if return_find:
+                        purchased_item = return_find.get("purchased_items")
+                        purchased_item.append(item)
+                        self.returned_invoices.update_one(filter,{"$set":{"purchased_items":purchased_item}})
+                    else:
+                        purchased_item = find.get("purchased_items")
+                        purchased_item.remove(item)
+                        return_find = find
+                        return_find["purchased_items"] = purchased_item
+                        self.returned_invoices.insert_one(return_find)
+
 
                 elif items.get("is_mobile") == False:        
                     model = items.get("model")
@@ -438,7 +449,7 @@ class database:
                     self.stock.update_one(filter2,{"$set": {"quantity": new_quantity}})
 
                     if items.get("quantity") == quantity:
-                        self.sales.update_one(filter,{"$pull": {"purchased_items": {
+                        item = {
                             "imei": items.get("imei"),
                             "model":  items.get("model"),
                             "storage":  items.get("storage"),
@@ -448,9 +459,9 @@ class database:
                             "total_amount":  items.get("total_amount"),
                             "is_mobile":  items.get("is_mobile"),
                             "supplier":  items.get("supplier")
-                        }}})
+                        }
                     else:
-                        self.sales.update_one(filter,{"$pull": {"purchased_items": {
+                        item = {
                             "imei": items.get("imei"),
                             "model":  items.get("model"),
                             "storage":  items.get("storage"),
@@ -460,7 +471,21 @@ class database:
                             "total_amount":  (int(items.get("quantity")) - quantity)*int(items.get("price")),
                             "is_mobile":  items.get("is_mobile"),
                             "supplier":  items.get("supplier")
-                        }}})
+                        }
+
+                    self.sales.update_one(filter,{"$pull": {"purchased_items": item}})
+
+                    return_find = self.returned_invoices.find_one(filter)
+                    if return_find:
+                        purchased_item = return_find.get("purchased_items")
+                        purchased_item.append(item)
+                        self.returned_invoices.update_one(filter,{"$set":{"purchased_items":purchased_item}})
+                    else:
+                        purchased_item = find.get("purchased_items")
+                        purchased_item.remove(item)
+                        return_find = find
+                        return_find["purchased_items"] = purchased_item
+                        self.returned_invoices.insert_one(return_find)
 
             break
 
