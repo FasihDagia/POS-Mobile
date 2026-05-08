@@ -36,7 +36,6 @@ class database:
         self.db = self.client["test"]
         self.stock = self.db["stock"]
         self.credit_accounts= self.db["credit_accounts"]
-        self.credit_accounts_history = self.db["credit_accounts_history"]
         self.sales = self.db["sales"]
         self.auth = self.db["auth"]
         self.ledger = self.db["ledger"]
@@ -201,6 +200,7 @@ class database:
         }
 
         details_cr = {
+            "inv_date": invoice_info["date"],
             "customer_name": customer["name"],
             "customer_cnic": customer["cnic"],
             "down_payment": customer["down_payment"],
@@ -275,7 +275,6 @@ class database:
         self.sales.insert_one(details)
 
         if customer["payment_type"] == "Credit Sale":
-            self.credit_accounts_history.insert_one(details_cr)
 
             filter_acc = {
                 "customer_name": customer["name"],
@@ -360,7 +359,7 @@ class database:
         entries = self.sales.find().sort("_id", -1)
         s_no =1
         for entry in entries:
-            if entry.get("returned") == False:
+            if entry.get("returned") == False or entry.get("return_type") == "Partial Return":
                 if entry.get("down_payment") == 0:
                     table.insert("", END,values=(
                         s_no,
@@ -427,16 +426,14 @@ class database:
 
                     return_find = self.returned_invoices.find_one(filter)
                     if return_find:
-                        purchased_item = return_find.get("purchased_items")
-                        purchased_item.append(item)
-                        self.returned_invoices.update_one(filter,{"$set":{"purchased_items":purchased_item}})
+                        purchased_items = return_find.get("purchased_items")
+                        purchased_items.append(item)
+                        self.returned_invoices.update_one(filter,{"$set":{"purchased_items":purchased_items}})
                     else:
-                        purchased_item = find.get("purchased_items")
-                        purchased_item.remove(item)
-                        return_find = find
-                        return_find["purchased_items"] = purchased_item
-                        self.returned_invoices.insert_one(return_find)
-
+                        purchased_items = items
+                        return_finds = find
+                        return_finds["purchased_items"] = [purchased_items]
+                        self.returned_invoices.insert_one(return_finds)
 
                 elif items.get("is_mobile") == False:        
                     model = items.get("model")
@@ -481,11 +478,12 @@ class database:
                         purchased_item.append(item)
                         self.returned_invoices.update_one(filter,{"$set":{"purchased_items":purchased_item}})
                     else:
-                        purchased_item = find.get("purchased_items")
-                        purchased_item.remove(item)
+                        purchased_items = items
                         return_find = find
-                        return_find["purchased_items"] = purchased_item
+                        return_find["purchased_items"] = [purchased_items]
                         self.returned_invoices.insert_one(return_find)
 
-            break
+                total_invoice_amount = find.get("total_inv_amount") - (int(items.get("price"))*quantity)
+                self.sales.update_one(filter,{"$set":{"total_inv_amount":total_invoice_amount}})
+                break
 

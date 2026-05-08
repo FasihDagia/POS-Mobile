@@ -862,95 +862,155 @@ class windows:
 
         def load_data():
             pipeline = [
-                        {
-                            "$addFields": {
-                                "imei_nos": {
-                                    "$reduce": {
-                                        "input": {
-                                            "$map": {
-                                                "input": {"$objectToArray": "$imei_nos"},
-                                                "as": "item",
-                                                "in": "$$item.v"   # extract each supplier's array
-                                            }
-                                        },
-                                        "initialValue": [],
-                                        "in": {"$concatArrays": ["$$value", "$$this"]}
+                {
+                    "$addFields": {
+                        "imei_nos": {
+                            "$reduce": {
+                                "input": {
+                                    "$map": {
+                                        "input": {"$objectToArray": "$imei_nos"},
+                                        "as": "item",
+                                        "in": "$$item.v"
                                     }
-                                }
-                            }
-                        },
-                        {
-                            "$group": {
-                                "_id": {
-                                    "model": "$model",
-                                    "storage": "$storage",
-                                    "condition": "$condition"
                                 },
-                                "imeis": {"$push": "$imei_nos"}
-                            }
-                        },
-                        {
-                            "$project": {
-                                "_id": 1,
-                                "imeis": {
-                                    "$reduce": {
-                                        "input": "$imeis",
-                                        "initialValue": [],
-                                        "in": {"$concatArrays": ["$$value", "$$this"]}
-                                    }
-                                }
-                            }
-                        },
-                        {
-                            "$group": {
-                                "_id": {
-                                    "model": "$_id.model",
-                                    "storage": "$_id.storage"
-                                },
-                                "conditions": {
-                                    "$push": {
-                                        "condition": "$_id.condition",
-                                        "imeis": "$imeis"
-                                    }
-                                }
-                            }
-                        },
-                        {
-                            "$group": {
-                                "_id": "$_id.model",
-                                "storages": {
-                                    "$push": {
-                                        "storage": "$_id.storage",
-                                        "conditions": "$conditions"
-                                    }
-                                }
-                            }
-                        },
-                        {
-                            "$project": {
-                                "_id": 0,
-                                "model": "$_id",
-                                "storages": 1
+                                "initialValue": [],
+                                "in": {"$concatArrays": ["$$value", "$$this"]}
                             }
                         }
-                    ]
+                    }
+                },
+
+                # GROUP BY model + storage + condition
+                {
+                    "$group": {
+                        "_id": {
+                            "model": "$model",
+                            "storage": "$storage",
+                            "condition": "$condition"
+                        },
+                        "imeis": {"$push": "$imei_nos"},
+                        "quantity": {"$sum": "$quantity"}   # ADD THIS
+                    }
+                },
+
+                # FLATTEN IMEI ARRAYS
+                {
+                    "$project": {
+                        "_id": 1,
+                        "quantity": 1,   # KEEP quantity
+                        "imeis": {
+                            "$reduce": {
+                                "input": "$imeis",
+                                "initialValue": [],
+                                "in": {"$concatArrays": ["$$value", "$$this"]}
+                            }
+                        }
+                    }
+                },
+
+                # GROUP BY model + storage
+                {
+                    "$group": {
+                        "_id": {
+                            "model": "$_id.model",
+                            "storage": "$_id.storage"
+                        },
+                        "conditions": {
+                            "$push": {
+                                "condition": "$_id.condition",
+                                "imeis": "$imeis",
+                                "quantity": "$quantity"   # ADD THIS
+                            }
+                        }
+                    }
+                },
+
+                # GROUP BY model
+                {
+                    "$group": {
+                        "_id": "$_id.model",
+                        "storages": {
+                            "$push": {
+                                "storage": "$_id.storage",
+                                "conditions": "$conditions"
+                            }
+                        }
+                    }
+                },
+
+                {
+                    "$project": {
+                        "_id": 0,
+                        "model": "$_id",
+                        "storages": 1
+                    }
+                }
+            ]
 
             data = list(self.db.stock.aggregate(pipeline))
             return data
 
+        def build_model_data(data):
+
+            model_data = {}
+
+            for item in data:
+
+                # check if model has any stock
+                has_stock = any(
+                    c.get("quantity", 0) > 0
+                    for s in item.get("storages", [])
+                    for c in s.get("conditions", [])
+                )
+
+                # skip models with no stock
+                if not has_stock:
+                    continue
+
+                model_name = item.get("model")
+
+                if not model_name:
+                    continue
+
+                model_data[model_name] = {}
+
+                for s in item.get("storages", []):
+
+                    storage_name = s.get("storage")
+
+                    if not storage_name:
+                        continue
+
+                    conditions_data = {}
+
+                    for c in s.get("conditions", []):
+
+                        quantity = c.get("quantity", 0)
+
+                        # skip zero quantity
+                        if quantity <= 0:
+                            continue
+
+                        imeis = c.get("imeis") or []
+
+                        # if only one imei exists
+                        if isinstance(imeis, list) and len(imeis) == 1:
+                            imeis = imeis[0]
+
+                        conditions_data[c.get("condition", "Unknown")] = imeis
+
+                    # add storage only if valid conditions exist
+                    if conditions_data:
+                        model_data[model_name][storage_name] = conditions_data
+
+                # remove empty models
+                if not model_data[model_name]:
+                    del model_data[model_name]
+
+            return model_data
+        
         data = load_data()
-
-        model_data = {}
-        for item in data:
-            model_data[item["model"]] = {}
-
-            for s in item["storages"]:
-                storage_name = s["storage"]
-                model_data[item["model"]][storage_name] = {}
-
-                for c in s["conditions"]:
-                    model_data[item["model"]][storage_name][c["condition"]] = c["imeis"]
-                
+        model_data = build_model_data(data)
         def on_keyrelease(event):
             value = model_entry.get().lower()
 
@@ -968,7 +1028,7 @@ class windows:
         model_entry = ttk.Combobox(left_frame)
         model_entry['values'] = list(model_data.keys())
         model_entry.grid(row=0, column=1, padx=5, pady=5)
-        model_entry.set("Select Model")
+        model_entry.set("Select Product")
 
         all_models = list(model_data.keys())  # keep original list
         model_entry.bind("<KeyRelease>", on_keyrelease)
@@ -1046,7 +1106,6 @@ class windows:
         total_entry_in = ttk.Entry(second_row_frame,font=("Helvetica",11,"bold"),width=15)
         total_entry_in.grid(column=5,row=0,padx=5,pady=7)
         
-
         def add():
             model = model_entry.get()
             storage = storage_entry.get()
@@ -1109,7 +1168,7 @@ class windows:
 
             for item in selected:
                 values = inv_table.item(item, "values")
-                price = float(values[5])  
+                price = float(values[6])  
 
                 # subtract from total
                 current_total = float(total_label.cget("text"))
@@ -1141,6 +1200,18 @@ class windows:
 
             inv_no = f"INV{str(self.db.sales.count_documents({}) + 1).zfill(5)}"
             inv_no_label.configure(text=inv_no)
+            add_placeholder(cus_cnic_entry,"Optional")
+            add_placeholder(cus_name_entry,"Optional")
+            note_entry.delete("1.0", "end")
+
+            data = load_data()
+            model_data = build_model_data(data)
+            model_entry['values'] = list(model_data.keys())
+
+            nt_du_dt_entry.configure(state=["disabled"])
+            dw_pay_entry.configure(state=["disabled"])
+
+            pay_ty_entry.set("Select type")
 
             total_label.configure(text=0.00)
             total_entry_in.delete(0,'end')
@@ -1202,9 +1273,9 @@ class windows:
                     "model": values[2],
                     "storage": str(values[3]),
                     "condition": values[4],
-                    "quantity": values[5],
-                    "price": values[6],
-                    "total_amount":values[7],
+                    "quantity": int(values[5]),
+                    "price": int(values[6]),
+                    "total_amount":int(values[7]),
                     "is_mobile": stock_find.get("is_mobile"),
                     "supplier": supplier
 
@@ -1219,9 +1290,9 @@ class windows:
                 "name" : customer_name,
                 "cnic": customer_cnic,
                 "payment_type": pay_ty_entry.get(),
-                "down_payment": dw_pay,
+                "down_payment": int(dw_pay),
                 "due_date": nt_du_dt,
-                "balance": balance
+                "balance": int(balance)
             }
 
             now = datetime.now()
@@ -1229,7 +1300,7 @@ class windows:
                 "invoice_no": inv_no_label.cget("text"),
                 "date": now.strftime("%Y-%m-%d"),
                 "time": now.strftime("%H:%M"),
-                "profit": profit,
+                "profit": int(profit),
                 "total_inv_amount":int(total_label.cget("text")),
                 "note":note
             }
@@ -1240,7 +1311,7 @@ class windows:
 
         win = Toplevel(self.root)
         win.title("Invoice Preview")
-        center_window(win, 600, 700)
+        center_window(win, 625, 700)
         win.configure(bg="white")
 
         # --- Top Back Button ---
@@ -1580,7 +1651,7 @@ class windows:
         ttk.Label(entry_frame,text="Invoice NO", font =font1).grid(row=1,column=0,padx=5,sticky="w")
         invoices = []
         for inv in self.db.sales.find():
-            if inv.get("returned") == False:
+            if inv.get("returned") == False or inv.get("return_type") == "Partial Return":
                 invoices.append(inv.get("invoice_no"))
         inv_entry = ttk.Combobox(entry_frame, values=invoices)
         inv_entry.grid(column=1,row=1,padx=5,pady=7)
@@ -1723,18 +1794,18 @@ class windows:
                     description = f"Paid Amount against returned Invoice No {invoice_no}"
                     
                     if find.get("payment_type") == "Credit Sale":
-                        amount = int(find.get("down_payment"))
+                        amount = find.get("down_payment")
                         if cr_acc_find:
-                            inv_balance = int(find.get("inv_balance"))
-                            cr_bal = int(cr_acc_find.get("balance"))
+                            inv_balance = find.get("inv_balance")
+                            cr_bal = cr_acc_find.get("balance")
                             self.db.credit_accounts.update_one(filter_cr_acc,{"$set":{"balance":cr_bal-inv_balance}})
 
                     else:
-                        amount = int(find.get("total_inv_amount"))
+                        amount = find.get("total_inv_amount")
 
                     balance_find = self.db.ledger.find_one(sort=[("_id", -1)])
                     if balance_find:
-                        balance = int(balance_find.get("balance",0)) - amount
+                        balance = balance_find.get("balance",0) - amount
                     else:
                         balance = 0 - amount
 
@@ -1748,63 +1819,74 @@ class windows:
                     
                     self.db.ledger.insert_one(details)
                     self.db.sales.update_one(filter,{"$set":{"returned":True,"return_type":"Full Invoice"}})
-                    self.db.returned_invoices.update_one(filter,{"$set":{"returned":True,"return_type":"Full Invoice"}})
+                    
 
                     messagebox.showinfo("Return Success","Invoice Returned Succesfully")
             else:
                 confirm = messagebox.askyesno("Confirm Return",f"Are you sure you want to return the product from the Invoice?")
                 if confirm:
+
                     purchased_items = find.get("purchased_items")
-                    quantity = quantity_entry.get()
+                    quantity = int(quantity_entry.get())
                     price = price_entry.get()
                     for item in purchased_items:
                         if item.get("model") == product:
-                            if quantity > item.get("quantity"):
+                            if  int(quantity) > int(item.get("quantity")):
                                 messagebox.showerror("Invalid Quantity","Can't return more quantity than bought!")
                                 return
                             
                     self.db.returned_invoice(invoice_no,product,quantity)
 
-                    amount = price *int(quantity)
+                    amount = int(price *int(quantity))
                     if find.get("payment_type") == "Credit Sale":
-                        down_payment = int(find.get("down_payment"))
-                        tot_inv_amount = int(find.get("total_inv_amount"))
-                        inv_balance = int(find.get("inv_balance"))
+
+                        down_payment = find.get("down_payment")
+                        tot_inv_amount = find.get("total_inv_amount")
+                        inv_balance = find.get("inv_balance")
                         remaining_product_amount = tot_inv_amount - amount
                         if remaining_product_amount > down_payment:
                             amount = 0
                             if cr_acc_find:
                                 new_inv_bal = remaining_product_amount - down_payment
                                 new_cr_bal = inv_balance - new_inv_bal 
-                                cr_bal = int(cr_acc_find.get("balance"))
+                                cr_bal = cr_acc_find.get("balance")
                                 self.db.credit_accounts.update_one(filter_cr_acc,{"$set":{"balance":cr_bal-new_cr_bal}})
                                 self.db.sales.update_one(filter,{"$set":{"inv_balance":new_inv_bal}})
+
                         elif remaining_product_amount < down_payment:
+
                             amount = down_payment - remaining_product_amount  
                             if cr_acc_find:
-                                cr_bal = int(cr_acc_find.get("balance"))
+                                cr_bal = cr_acc_find.get("balance")
                                 new_cr_bal = cr_bal - inv_balance
-                                self.db.credit_accounts.update_one(filter_cr_acc,{"$set":{"balance":cr_bal-new_cr_bal}})
-                                self.db.sales.update_one(filter,{"$set":{"inv_balance":0}})
+                                cr_acc_dw = cr_acc_find.get("down_payment")
+                                new_cr_acc_dw = cr_acc_dw - amount
+                                tot_pay_amt = cr_acc_find.get("total_amount_paid")
+                                new_tot_pay_amt = tot_pay_amt - amount
+                                self.db.credit_accounts.update_one(filter_cr_acc,{"$set":{"balance":new_cr_bal,"down_payment":new_cr_acc_dw,"total_amount_paid":new_tot_pay_amt}})
+                                self.db.sales.update_one(filter,{"$set":{"inv_balance":0,}})
+
                         elif remaining_product_amount == down_payment:
+
                             amount = 0
                             if cr_acc_find:
-                                cr_bal = int(cr_acc_find.get("balance"))
+                                cr_bal = cr_acc_find.get("balance")
                                 new_cr_bal = cr_bal - inv_balance
-                                self.db.credit_accounts.update_one(filter_cr_acc,{"$set":{"balance":cr_bal-new_cr_bal}})
+                                self.db.credit_accounts.update_one(filter_cr_acc,{"$set":{"balance":new_cr_bal}})
                                 self.db.sales.update_one(filter,{"$set":{"inv_balance":0}})
+
 
                     if amount > 0 :
                         balance_find = self.db.ledger.find_one(sort=[("_id", -1)])
+
                         if balance_find:
-                            balance = int(balance_find.get("balance",0)) - amount
+                            balance = balance_find.get("balance",0) - amount
                         else:
                             balance = 0 - amount
 
                         now = datetime.now()
                         date = f"{now.strftime("%Y-%m-%d")}"
                         description = f"Paid Amount against returned Invoice No {invoice_no}"
-
                         details = {
                             "date":date,
                             "description":description,
@@ -1814,7 +1896,11 @@ class windows:
                         }
 
                         self.db.ledger.insert_one(details)
+                    if len(self.db.sales.find_one(filter).get("purchased_items")) > 0:
                         self.db.sales.update_one(filter,{"$set":{"returned":True,"return_type":"Partial Return"}})
+                    else:
+                        self.db.sales.update_one(filter,{"$set":{"returned":True,"return_type":"Partial Return"}})
+                    messagebox.showinfo("Return Success","Product Returned Successfully")
                         
 
                         
