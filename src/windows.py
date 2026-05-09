@@ -753,6 +753,22 @@ class windows:
             data["balance"] = bal_due
             data["due_date"] = due_date
 
+            balance_find = self.db.ledger.find_one(sort=[("_id", -1)])
+
+            if balance_find:
+                balance = balance_find.get("balance",0) + amount_receivable
+            else:
+                balance = 0 + amount_receivable
+
+            ledger_det = {
+                "date": datetime.strptime(date, "%Y-%m-%d"),
+                "description":f"Received amount from {cus_name} against credit settlement",
+                "debit": int(amount_receivable),
+                "credit": 0,
+                "balance" : balance
+            }
+
+            self.db.ledger.insert_one(ledger_det)
             self.db.save_cr_settle(data)
             messagebox.showinfo("Account Updated","Credit account updated successfully!")
             popup.destroy()
