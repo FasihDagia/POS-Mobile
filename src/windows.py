@@ -352,16 +352,17 @@ class windows:
             s_no = 1
             for item in all_data:
                 if query in item["model"].replace(" ","").lower():
-                    table_stocks.insert("", "end", values=(
-                        s_no,
-                        item["purchase_date"],
-                        item["model"],
-                        item.get("storage", ""),
-                        item["quantity"],
-                        item.get("condition", ""),
-                        item["purchase_price"]
-                    ))
-                    s_no+=1
+                    if item.get("quantity") > 0:
+                        table_stocks.insert("", "end", values=(
+                            s_no,
+                            item["purchase_date"],
+                            item["model"],
+                            item.get("storage", ""),
+                            item["quantity"],
+                            item.get("condition", ""),
+                            item["purchase_price"]
+                        ))
+                        s_no+=1
 
         search_entry = ttk.Entry(frame, width=30)
         search_entry.grid(row=0, column=0,sticky="w",padx=10)
@@ -1296,9 +1297,10 @@ class windows:
             }
 
             now = datetime.now()
+            date_str = now.strftime("%Y-%m-%d")
             invoice_info = {
                 "invoice_no": inv_no_label.cget("text"),
-                "date": now.strftime("%Y-%m-%d"),
+                "date": datetime.strptime(date_str, "%Y-%m-%d"),
                 "time": now.strftime("%H:%M"),
                 "profit": int(profit),
                 "total_inv_amount":int(total_label.cget("text")),
@@ -1595,6 +1597,8 @@ class windows:
                 now = datetime.now()
                 to_date = now.strftime("%Y-%m-%d")
 
+            to_date = datetime.strptime(to_date, "%Y-%m-%d")
+            from_date = datetime.strptime(from_date, "%Y-%m-%d")
             results = self.db.sales.find({
                 "inv_date": {
                     "$gte": from_date,
@@ -1607,12 +1611,13 @@ class windows:
                 total_invoice_amount = 0.00
                 amount_received = 0.00
                 for result in results:
-                    no_invoices+=1
-                    total_invoice_amount += float(result.get("total_inv_amount"))
-                    if float(result.get("down_payment")) == 0.00:
-                        amount_received += float(result.get("total_inv_amount"))
-                    else:
-                        amount_received += float(result.get("down_payment"))
+                    if result.get("returned") == False or result.get("return_type") == "Partial Return":
+                        no_invoices+=1
+                        total_invoice_amount += float(result.get("total_inv_amount"))
+                        if float(result.get("down_payment")) == 0.00:
+                            amount_received += float(result.get("total_inv_amount"))
+                        else:
+                            amount_received += float(result.get("down_payment"))
                 if no_invoices == 0:
                     messagebox.showerror("No Invoices","No Invoices in the given date range!")
                     return
@@ -1861,10 +1866,13 @@ class windows:
                                 new_cr_bal = cr_bal - inv_balance
                                 cr_acc_dw = cr_acc_find.get("down_payment")
                                 new_cr_acc_dw = cr_acc_dw - amount
+                                if new_cr_acc_dw<0:
+                                    new_cr_acc_dw = 0
                                 tot_pay_amt = cr_acc_find.get("total_amount_paid")
                                 new_tot_pay_amt = tot_pay_amt - amount
+                                new_sl_dw_pay = down_payment - amount
                                 self.db.credit_accounts.update_one(filter_cr_acc,{"$set":{"balance":new_cr_bal,"down_payment":new_cr_acc_dw,"total_amount_paid":new_tot_pay_amt}})
-                                self.db.sales.update_one(filter,{"$set":{"inv_balance":0,}})
+                                self.db.sales.update_one(filter,{"$set":{"inv_balance":0,"down_payment":new_sl_dw_pay}})
 
                         elif remaining_product_amount == down_payment:
 
@@ -1896,10 +1904,12 @@ class windows:
                         }
 
                         self.db.ledger.insert_one(details)
-                    if len(self.db.sales.find_one(filter).get("purchased_items")) > 0:
+                    
+                    ite = self.db.sales.find_one(filter).get("purchased_items")
+                    if len(ite) > 0:
                         self.db.sales.update_one(filter,{"$set":{"returned":True,"return_type":"Partial Return"}})
                     else:
-                        self.db.sales.update_one(filter,{"$set":{"returned":True,"return_type":"Partial Return"}})
+                        self.db.sales.update_one(filter,{"$set":{"returned":True,"return_type":"Full Invoice"}})
                     messagebox.showinfo("Return Success","Product Returned Successfully")
                         
 
