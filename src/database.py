@@ -517,4 +517,4 @@ class database:
 
         self.ledger.insert_one(details)
 
-        
+        messagebox.showinfo("success","Expense Saved Successfully")
