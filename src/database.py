@@ -504,3 +504,17 @@ class database:
                 entry.get("balance")
             ))
             s_no+=1
+
+    def save_expense(self,details):
+        balance = 0
+        balance_find = self.db.ledger.find_one(sort=[("_id", -1)])
+        if balance_find:
+            balance = balance_find.get("balance",0) - details["credit"]
+        else:
+            balance = 0 - details["credit"]
+
+        details["balance"] = balance
+
+        self.ledger.insert_one(details)
+
+        

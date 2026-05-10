@@ -1986,7 +1986,7 @@ class windows:
         amount_entry.grid(row=0,column=3,padx=5,pady=10)
 
         ttk.Label(entry_frame,text="Description:",font=font).grid(row=1,column=0,padx=5,pady=10)
-        note_entry = Text(entry_frame, height=7, width=50)
+        note_entry = Text(entry_frame, height=5, width=50,font=font)
         note_entry.grid(row=1,column=1,padx=5,pady=10,columnspan=3)
 
         ttk.Button(self.root,text="Add Expense",cursor="hand2",style="Module.TButton",command=lambda:add_expense()).pack(pady=20)
@@ -2003,4 +2003,11 @@ class windows:
             if not description:
                 description = "Nill"
 
-                        
+            ledger_det = {
+                "date":datetime.strptime(date, "%Y-%m-%d"),
+                "description":description,
+                "debit":0,
+                "credit":amount,
+            }            
+
+            self.db.save_expense(ledger_det)
