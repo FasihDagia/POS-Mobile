@@ -202,8 +202,8 @@ class windows:
         style.configure("Module.TButton", font=("Helvetica", 11),borderwidth=4,padding=(4,25))
         style.configure("Logout.TButton", font=("Helvetica", 11),borderwidth=4,padding=2)
         
-        buttons = ["Stock","Stock Entry","Credit Accounts","Invoicing Module","Sales"]
-        commmands = [self.stocks_window,self.stock_entry,self.credit_acc,self.invoicing_module,self.sales]
+        buttons = ["Stock","Stock Entry","Credit Accounts","Invoicing Module","Sales","General Ledger"]
+        commmands = [self.stocks_window,self.stock_entry,self.credit_acc,self.invoicing_module,self.sales,self.ledger]
 
         btn_frame = Frame(self.root)
         btn_frame.pack(pady=5)
@@ -1928,5 +1928,28 @@ class windows:
                         self.db.sales.update_one(filter,{"$set":{"returned":True,"return_type":"Full Invoice"}})
                     messagebox.showinfo("Return Success","Product Returned Successfully")
                         
+    def ledger(self):
+
+        destroy_widgets(self.root)
+
+        center_window(self.root, 1000,500)
+        self.root.title("General Ledger")
+
+        style = ttk.Style()
+        style.configure("Log.TButton", font=("Helvetica", 11),padding=6,borderwidth=2)
+
+        img = PhotoImage(file=resource_path("assets/back.png"))
+        smaller_img = img.subsample(30, 30)
+
+        bk_btn = ttk.Button(self.root,image=smaller_img,cursor="hand2",command=self.home_page)
+        bk_btn.image = smaller_img
+        bk_btn.pack(anchor="nw", padx=10, pady=10)
+
+        ttk.Label(self.root,text="General Ledger",font=("Helvetica",20,"bold")).pack(pady=10)
+
+        sales_table_columns = ["S NO","Date","Description","Debit","Credit","Balance"]
+        sales_columns_width = [50,100,400,130,130,130]
+        table_sales = create_treeview(self.root, sales_table_columns, sales_columns_width,18)
+
 
                         

@@ -487,3 +487,4 @@ class database:
                 self.sales.update_one(filter,{"$set":{"total_inv_amount":total_invoice_amount}})
                 break
 
+    
