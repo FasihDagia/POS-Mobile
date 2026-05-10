@@ -487,4 +487,20 @@ class database:
                 self.sales.update_one(filter,{"$set":{"total_inv_amount":total_invoice_amount}})
                 break
 
-    
+    def load_ledger(self,table):
+        for row in table.get_children():
+            table.delete(row)
+
+        entries = self.ledger.find().sort("_id", -1)
+        s_no =1
+        for entry in entries:
+            
+            table.insert("", END,values=(
+                s_no,
+                entry.get("date"),
+                entry.get("description"),
+                entry.get("debit"),
+                entry.get("credit"),
+                entry.get("balance")
+            ))
+            s_no+=1
