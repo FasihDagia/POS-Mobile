@@ -187,7 +187,7 @@ class windows:
 
         destroy_widgets(self.root)
 
-        center_window(self.root, 600,400)
+        center_window(self.root, 600,450)
         self.root.title("HomePage")
 
         img = PhotoImage(file=resource_path("assets/logout.png"))
@@ -202,8 +202,8 @@ class windows:
         style.configure("Module.TButton", font=("Helvetica", 11),borderwidth=4,padding=(4,25))
         style.configure("Logout.TButton", font=("Helvetica", 11),borderwidth=4,padding=2)
         
-        buttons = ["Stock","Stock Entry","Credit Accounts","Invoicing Module","Sales","General Ledger"]
-        commmands = [self.stocks_window,self.stock_entry,self.credit_acc,self.invoicing_module,self.sales,self.ledger]
+        buttons = ["Stock","Stock Entry","Credit Accounts","Invoicing Module","Sales","General Ledger","General Expense"]
+        commmands = [self.stocks_window,self.stock_entry,self.credit_acc,self.invoicing_module,self.sales,self.ledger,self.expense]
 
         btn_frame = Frame(self.root)
         btn_frame.pack(pady=5)
@@ -1953,5 +1953,54 @@ class windows:
 
         self.db.load_ledger(table_ledger)
 
+    def expense(self):
+        destroy_widgets(self.root)
+        center_window(self.root,600,450)
+
+        self.root.title("General Expense")
+
+        style = ttk.Style()
+        style.configure("Module.TButton", font=("Helvetica", 11),padding=6,borderwidth=2)
+
+        img = PhotoImage(file=resource_path("assets/back.png"))
+        smaller_img = img.subsample(25, 25)
+
+        bk_btn = ttk.Button(self.root,image=smaller_img,cursor="hand2",style="Logout.TButton",command=self.home_page)
+        bk_btn.image = smaller_img
+        bk_btn.pack(anchor="nw", padx=10, pady=10)
+
+        ttk.Label(self.root,text="General Expense",font=("Helvetica",20,"bold")).pack(pady=5)
+
+        font = ("Helvetica",12,"bold")
+        entry_frame = Frame(self.root)
+        entry_frame.pack(pady=10)
+
+        ttk.Label(entry_frame,text="Date",font=font).grid(row=0,column=0,padx=5,pady=10)
+        date_entry = DateEntry(entry_frame, width=12, background='darkblue',
+                       foreground='white', borderwidth=2,date_pattern="yyyy-mm-dd")
+        date_entry.grid(row=0,column=1,padx=5,pady=10)
+        date_entry.set_date(date.today()) 
+
+        ttk.Label(entry_frame,text="Amount:",font=font).grid(row=0,column=2,padx=5,pady=10)
+        amount_entry = ttk.Entry(entry_frame,font=font)
+        amount_entry.grid(row=0,column=3,padx=5,pady=10)
+
+        ttk.Label(entry_frame,text="Description:",font=font).grid(row=1,column=0,padx=5,pady=10)
+        note_entry = Text(entry_frame, height=7, width=50)
+        note_entry.grid(row=1,column=1,padx=5,pady=10,columnspan=3)
+
+        ttk.Button(self.root,text="Add Expense",cursor="hand2",style="Module.TButton",command=lambda:add_expense()).pack(pady=20)
+
+        def add_expense():
+            date = date_entry.get()
+            amount = int(amount_entry.get())
+            
+            if not date or not amount:
+                messagebox.showwarning("Missing Fields","Please Fill all the fields")
+                return
+            
+            description = note_entry.get("1.0", END)
+            if not description:
+                description = "Nill"
 
                         
