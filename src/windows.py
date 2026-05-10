@@ -820,7 +820,7 @@ class windows:
         nt_du_dt_entry.grid(row=6,column=1,padx=5)
 
         grid_label(right_frame,"Note:",0,7,12)
-        note_entry = Text(right_frame, height=5, width=30)
+        note_entry = Text(right_frame, height=5, width=30,font=("Helvetica",10,"bold"))
         note_entry.grid(row=7,column=1,padx=5,pady=10)
 
         def cr_sale_input(event):
@@ -1072,7 +1072,10 @@ class windows:
             s = storage_entry.get()
             c = condition_entry.get()
 
-            imeis = model_data[m][s][c]
+            imeis = []
+            for imei in model_data[m][s][c]:
+                imeis.append(imei["imei"])
+            
             imei_entry['values'] = imeis
 
             filter = {
@@ -1258,8 +1261,11 @@ class windows:
                     im = stock_find.get("imei_nos")
                     for key in im.keys():
                         for i in im[key]:
-                            if i == str(values[1]):
+                            if i["imei"] == str(values[1]):
                                 supplier = key 
+                                purchase_price = int(i["purchase_price"])
+                    print(supplier)
+                    print(purchase_price)
 
                 row = {
                     "imei": str(values[1]),
@@ -1270,12 +1276,15 @@ class windows:
                     "price": int(values[6]),
                     "total_amount":int(values[7]),
                     "is_mobile": stock_find.get("is_mobile"),
-                    "supplier": supplier
+                    "supplier": supplier,
+                    "purchase_price":purchase_price
 
                 }
                 data.append(row)
-
-                profit += (int(values[7])-(int(stock_find.get("purchase_price"))*int(values[5])))
+                if str(values[1]) == "Nill":
+                    profit += (int(values[7])-(int(stock_find.get("purchase_price"))*int(values[5])))
+                else:
+                    profit += (int(values[7])-(purchase_price*int(values[5])))
                 
             tot_inv_amount = int(total_label.cget("text"))
             balance = tot_inv_amount-dw_pay
@@ -1988,4 +1997,3 @@ class windows:
 
             self.db.save_expense(ledger_det)
             clear_entries_expense(date_entry,amount_entry,note_entry)
-            

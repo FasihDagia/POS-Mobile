@@ -215,125 +215,6 @@ class database:
                 names.append(supplier)
 
         return names
-
-    # def add_stock(self, model, storage, condition, purchase_date, quantity, purchase_price,imei_nos,supplier_name,supplier_cnic,is_mobile):
-
-    #         data = {
-    #             "purchase_date": purchase_date,
-    #             "model": model,
-    #             "is_mobile":is_mobile,
-    #             "storage": storage,
-    #             "condition": condition,
-    #             "quantity": quantity,
-    #             "purchase_price": purchase_price,
-    #             "imei_nos":imei_nos,
-    #             "suppliers":{
-    #                 "1":{
-    #                 "name":supplier_name,
-    #                 "cnic":supplier_cnic
-    #             }}
-    #         }
-
-    #         filter = {
-    #             "model": model,
-    #             "storage": storage,
-    #             "condition": condition,
-    #         }
-    #         exist = self.stock.find_one(filter)
-            
-    #         if exist:
-    #             imei = exist.get("imei_nos")
-    #             quantity = quantity+ exist["quantity"]
-    #             suppliers = exist.get("suppliers")
-    #             if imei:
-    #                 if supplier_name in imei.keys():
-    #                     sup_imeis = imei[supplier_name]
-    #                     for imeis in imei_nos[supplier_name]:
-    #                         sup_imeis.append(imeis)
-    #                     imei[supplier_name] = sup_imeis
-    #                 else:
-    #                     imei[supplier_name] = imei_nos[supplier_name]  
-    #             new_supplier = data["suppliers"]["1"]
-    #             exists = any(s["cnic"] == new_supplier["cnic"] for s in suppliers.values())
-
-    #             if not exists:
-    #                 new_id = str(len(suppliers.keys())+1)
-    #                 suppliers[new_id] = new_supplier
-                
-    #             data["imei_nos"] = imei
-    #             data["quantity"] = quantity
-    #             data["suppliers"] = suppliers
-
-    #             self.stock.update_one(filter,{"$set":data})
-    #         else:
-    #             self.stock.insert_one(data)
-    #         if imei_nos:
-    #             imei_nos.clear()
-
-    #         messagebox.showinfo("Success","Stock added successfully!")
-    
-    # def load_stock(self,table):
-
-    #     for row in table.get_children():
-    #         table.delete(row)
-
-    #     entries = self.stock.find()
-
-    #     s_no =1
-    #     for entry in entries:
-    #         if entry.get("quantity") > 0:
-    #             table.insert("", END,values=(
-    #                 s_no,
-    #                 entry.get("purchase_date"),
-    #                 entry.get("model"),
-    #                 entry.get("storage"),
-    #                 entry.get("quantity"),
-    #                 entry.get("condition"),
-    #                 entry.get("purchase_price"),
-    #                 entry.get("sell_price"),
-    #             ))
-    #             s_no+=1
-
-    # def load_imei(self,row,table,supplier):
-    #     suply = supplier.get()
-    #     if suply:
-    #         for ro in table.get_children():
-    #             table.delete(ro)
-
-    #         filter = {
-    #             "model":str(row[2]),
-    #             "storage":str(row[3]),
-    #             "condition":str(row[5])
-    #         }
-
-    #         data = self.stock.find_one(filter)
-    #         imeis = data.get("imei_nos")
-    #         suply_imei = imeis[suply]
-    #         s_no =1
-    #         for entry in suply_imei:
-    #             table.insert("", END,values=(
-    #                 s_no,
-    #                 entry
-    #                 ))
-    #             s_no+=1
-    #     else:
-    #         messagebox.showwarning("Missing Input","Please Select a supplier")                 
-
-    # def get_suppliers(self,row):
-    #     filter = {
-    #         "model":str(row[2]),
-    #         "storage":str(row[3]),
-    #         "condition":str(row[5])
-    #     }
-
-    #     data = self.stock.find_one(filter)
-    #     names = []
-    #     if data:
-    #         name_data = data.get("imei_nos")
-    #         for supplier in name_data.keys():   
-    #             names.append(supplier)
-
-    #     return names
    
     def save_invoice(self, data, customer, invoice_info, win, on_save=None):
 
@@ -402,12 +283,12 @@ class database:
                 imei_to_delete = item["imei"]
                 suppliers_imeis = stck_find.get("imei_nos")
 
-                for supplier, imei_list in suppliers_imeis.items():
-                    if imei_to_delete in imei_list:
+                for imei_list in suppliers_imeis[item["supplier"]]:
+                    if imei_list["imei"] == imei_to_delete:
 
                         self.stock.update_one(
                             {"_id": stck_find["_id"]},
-                            {"$pull": {f"imei_nos.{supplier}": imei_to_delete}}
+                            {"$pull": {f"imei_nos.{item["supplier"]}": imei_list}}
                         )
 
                         break
@@ -549,7 +430,9 @@ class database:
             if items.get("model") == product:
                 if items.get("is_mobile") == True:
 
-                    imei = items.get("imei")
+                    imei ={"imei": items.get("imei"),
+                           "purchase_price":items.get("purchase_price")
+                    }
                     supplier = items.get("supplier")
                     model = items.get("model")
                     condition = items.get("condition")
