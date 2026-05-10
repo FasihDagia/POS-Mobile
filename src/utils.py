@@ -504,3 +504,25 @@ def clear_entries_expense(date_entry,amount,description):
     date_entry.set_date(date.today())
     amount.delete(0, 'end')
     description.delete("1.0", "end")
+
+def search_data(table_stocks,search_entry,db):
+            query = search_entry.get().replace(" ","").lower()
+
+            # Clear table
+            table_stocks.delete(*table_stocks.get_children())
+            all_data = db.find()
+            # Filter and insert only matching rows
+            s_no = 1
+            for item in all_data:
+                if query in item["model"].replace(" ","").lower():
+                    if item.get("quantity") > 0:
+                        table_stocks.insert("", "end", values=(
+                            s_no,
+                            item["purchase_date"],
+                            item["model"],
+                            item.get("storage", ""),
+                            item["quantity"],
+                            item.get("condition", ""),
+                            item["purchase_price"]
+                        ))
+                        s_no+=1

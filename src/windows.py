@@ -2,7 +2,7 @@ from tkinter import ttk,messagebox,Frame,Toplevel,PhotoImage,END,Canvas,BooleanV
 from tkinter import *
 from src.database import database
 from src.utils import center_window,destroy_widgets,create_treeview,get_selected,grid_label,grid_create_treeview,print_invoice,add_placeholder,resource_path,remove_stock,validate_frame,stk_delete,stk_update
-from src.utils import invoice_details,product_details,clear_entries_expense
+from src.utils import invoice_details,product_details,clear_entries_expense,search_data
 from datetime import date,datetime
 from tkcalendar import DateEntry
 
@@ -244,9 +244,11 @@ class windows:
         ttk.Button(btn_frame, text="Return Invoice",style="Module.TButton" ,width=20, cursor="hand2",command=self.return_invoice).grid(padx=20, pady=20, row=0,column=1)
 
     def stocks_window(self):
+
         destroy_widgets(self.root)
 
-        center_window(self.root, 1000,600)
+        center_window(self.root,1100,600)
+
         self.root.title("Stocks")
 
         style = ttk.Style()
@@ -262,15 +264,23 @@ class windows:
         ttk.Label(self.root,text="Remaining Stock",font=("Helvetica",20,"bold")).pack(pady=10)
 
         def show_imei():
+
             row = get_selected(table_stocks)
             if row:
-                filter1 = {"model":str(row[2])}
-                is_mobile = self.db.stock.find_one(filter1)["is_mobile"]
+                filter1 = {"model":str(row[2]),"storage":str(row[3]),"condition":str(row[5]),"purchase_price":row[6]}
+                stock_data = self.db.stock.find_one(filter1)
+
+                if not stock_data:
+                    messagebox.showerror("Error","Stock not found")
+                    return
+
+                is_mobile = stock_data.get("is_mobile")
 
                 if is_mobile == True:
+
                     popup = Toplevel(self.root)
                     popup.title("IMEI Nos")
-                    center_window(popup,400,550)
+                    center_window(popup,450,550)
 
                     img = PhotoImage(file=resource_path("assets/back.png"))
                     smaller_img = img.subsample(30, 30)
@@ -284,7 +294,10 @@ class windows:
                     bk_btn.pack(anchor="nw", padx=10, pady=10)
 
                     model = row[2]
+
                     ttk.Label(popup,text=f"Model:{model}",font=("Helvetica", 16, "bold")).pack(pady=7)
+                    ttk.Label(popup,text=f"Purchase Price:{row[6]}",font=("Helvetica", 12, "bold")).pack(pady=3)
+
                     sup_entry_frame = Frame(popup)
                     sup_entry_frame.pack(pady=10)
 
@@ -296,45 +309,52 @@ class windows:
 
                     ttk.Button(sup_entry_frame,text="Show IMEI",cursor="hand2",command=lambda:self.db.load_imei(row,table_imei,pay_ty_entry)).grid(row=0,column=2,padx=5)
 
-                    table_imei_columns = ["S.NO","IMEI NO"]
-                    table_imei_width = [50,150]
+                    table_imei_columns = ["S.NO","IMEI NO","Purchase Price"]
+                    table_imei_width = [50,180,120]
                     table_imei = create_treeview(popup,table_imei_columns,table_imei_width,20)
-                    
-                    filter={
-                        "model":str(row[2]),
-                        "storage":str(row[3]),
-                        "condition":str(row[5])
-                    }
 
-                    table_imei.bind("<Double-1>", lambda e: remove_stock(table_imei,pay_ty_entry.get(),self.db.stock,filter))
+                    filter2 = {"model":str(row[2]),"storage":str(row[3]),"condition":str(row[5]),"purchase_price":row[6]}
+                    
+                    table_imei.bind("<Double-1>", lambda e: remove_stock(table_imei,pay_ty_entry.get(),self.db.stock,filter2))
                     popup.protocol("WM_DELETE_WINDOW", on_close)
 
                 else:
-                    messagebox.showerror("Wrong Product","The product you have selected does not have IMEI Nos")
+                    messagebox.showerror("Wrong Product","The selected product does not have IMEI Nos")
             else:
-                messagebox.showerror("Empty Input","Please Select a Mobile model")
+                messagebox.showerror("Empty Input","Please Select a product")
 
         def remove_stock_1():
             selected = table_stocks.selection()
+            if not selected:
+                messagebox.showwarning("No Selection","Please select a stock item")
+                return
+
             row = table_stocks.item(selected)["values"]
-            filter1 = {"model":str(row[2])}
-            is_mobile = self.db.stock.find_one(filter1)["is_mobile"]
+
+            filter1 = {"model":str(row[2]),"storage":str(row[3]),"condition":str(row[5]),"purchase_price":str(row[6])}
+
+            stock_data = self.db.stock.find_one(filter1)
+            if not stock_data:
+                messagebox.showerror("Error","Stock not found")
+                return
+
+            is_mobile = stock_data.get("is_mobile")
+
             if is_mobile == False:
-                
+
                 dialog = Toplevel(self.root)
                 dialog.title("Select Action")
                 center_window(dialog,250,120)
                 dialog.maxsize(250, 120)
-                dialog.grab_set()  
+                dialog.grab_set()
 
-                ttk.Label(dialog, text="What do you want to do?").pack(pady=10)
+                ttk.Label(dialog,text="What do you want to do?").pack(pady=10)
 
-                ttk.Button(dialog, text="Delete", command=lambda:stk_delete(filter1,selected,dialog,self.db.stock,table_stocks)).pack(side="right", padx=10, pady=10)
-                ttk.Button(dialog, text="Update", command=lambda:stk_update(filter1,selected,dialog,self.db.stock,table_stocks)).pack(side="right", padx=10, pady=10)
+                ttk.Button(dialog,text="Delete",command=lambda:stk_delete(filter1,selected,dialog,self.db.stock,table_stocks)).pack(side="right", padx=10, pady=10)
+                ttk.Button(dialog,text="Update",command=lambda:stk_update(filter1,selected,dialog,self.db.stock,table_stocks)).pack(side="right", padx=10, pady=10)
 
-                
             else:
-                messagebox.showerror("Can't Be Deleted","The product you have selected have IMEI Nos \nCan't be deleted from here")
+                messagebox.showerror("Can't Be Deleted","This stock contains IMEI Nos")
 
         sh_btn = ttk.Button(self.root,text="Show IMEI",width=15,cursor="hand2",style="Log.TButton",command=show_imei)
         sh_btn.pack(pady=10)
@@ -342,41 +362,21 @@ class windows:
         frame = Frame(self.root)
         frame.pack(pady=10)
 
-        def search_data():
-            query = search_entry.get().replace(" ","").lower()
-
-            # Clear table
-            table_stocks.delete(*table_stocks.get_children())
-            all_data = self.db.stock.find()
-            # Filter and insert only matching rows
-            s_no = 1
-            for item in all_data:
-                if query in item["model"].replace(" ","").lower():
-                    if item.get("quantity") > 0:
-                        table_stocks.insert("", "end", values=(
-                            s_no,
-                            item["purchase_date"],
-                            item["model"],
-                            item.get("storage", ""),
-                            item["quantity"],
-                            item.get("condition", ""),
-                            item["purchase_price"]
-                        ))
-                        s_no+=1
-
         search_entry = ttk.Entry(frame, width=30)
-        search_entry.grid(row=0, column=0,sticky="w",padx=10)
+        search_entry.grid(row=0,column=0,sticky="w",padx=10)
+
         text ="Search"
         add_placeholder(search_entry,text)
-        search_entry.bind("<KeyRelease>", lambda e: search_data())
+        search_entry.bind("<KeyRelease>", lambda e: search_data(table_stocks,search_entry,self.db.stock))
 
         frame_2 = Frame(frame)
         frame_2.grid(row=1,column=0)
-        table_stock_columns =["S.NO", "Date Purchase","Product","Storage","Quantity", "Condition","Purchse Price per Unit"]
-        table_stock_widths= [50,100,120,100,100,120,120,200] 
-        table_stocks = grid_create_treeview(frame_2, table_stock_columns, table_stock_widths,20)
-        self.db.load_stock(table_stocks)
 
+        table_stock_columns = ["S.NO","Purchase Date","Product","Storage","Quantity","Condition","Purchase Price"]
+        table_stock_widths = [50,120,150,100,100,100,130]
+        table_stocks = grid_create_treeview(frame_2, table_stock_columns, table_stock_widths,20)
+
+        self.db.load_stock(table_stocks)
         table_stocks.bind("<Double-1>", lambda e: remove_stock_1())
 
     def stock_entry(self):
@@ -455,13 +455,14 @@ class windows:
         condition_entry.set("Select a condition")
 
         ttk.Label(entry_frame,text="IMEI",font=font).grid(row=4,column=2,padx=5,pady=10)
-        imei_button = ttk.Button(entry_frame,text="Enter IMEI Nos",cursor="hand2",command=lambda:imei_entry(quantity_entry,supplier_name_entry))
+        imei_button = ttk.Button(entry_frame,text="Enter IMEI Nos",cursor="hand2",command=lambda:imei_entry(quantity_entry,supplier_name_entry,purchase_price_entry))
         imei_button.grid(row=4,column=3,padx=5,pady=10)
         imei_button.state(["disabled"])
 
-        def imei_entry(quantity,supplier):
+        def imei_entry(quantity,supplier,purchase_price_entry):
             quan = quantity.get()
             supplier_name = supplier.get()
+            purchase_price = purchase_price_entry.get()
             if quan and supplier_name: 
                 popup = Toplevel(self.root)
                 center_window(popup, 250, 350)
@@ -504,20 +505,25 @@ class windows:
                     ttk.Entry(frame, width=20).grid(row=i,column=1,pady=7)
 
                 def get_imeis():
+
                     imei = []
                     for entry in frame.winfo_children():
-                        if not entry:
-                            messagebox.showerror("Empty Input","Please Enter all Inputs")
-                            self.imeis.clear()
-                            return
-                    
-                        elif not isinstance(entry,ttk.Label):
-                                imei.append(entry.get())
+                        if isinstance(entry, ttk.Entry):
+
+                            value = entry.get()
+                            if not value:
+                                messagebox.showerror("Empty Input","Please Enter all Inputs")
+                                self.imeis.clear()
+                                return
+
+                            imei.append({
+                                "imei": value,
+                                "purchase_price": int(purchase_price)
+                            })
 
                     self.imeis[supplier_name] = imei
-                    
-
                     popup.destroy()
+                    
                 ttk.Button(scroll_frame,text="Submit",cursor="hand2",style="Module.TButton",command=get_imeis).pack(pady=5)
 
             else:
@@ -543,12 +549,13 @@ class windows:
             supplier_name = supplier_name_entry.get()
             supplier_cnic = supplier_cnic_entry.get()  
             quantity = int(quantity_entry.get())
-            purchase_price = purchase_price_entry.get()
+            purchase_price = int(purchase_price_entry.get())
             is_mobile = en_imei_entry_var.get()
             if is_mobile == True:
                 storage = storage_entry.get() 
                 condition = condition_entry.get()
                 imeis = self.imeis
+                purchase_price = "Nill"
             else:
                 storage ="Nill"
                 condition = "Nill"
@@ -581,37 +588,6 @@ class windows:
 
         ttk.Label(self.root,text="Credit Accounts",font=("Helvetica",20,"bold")).pack(pady=5)
 
-        # def show_history():
-        #     row = get_selected(table_cr_acc)
-        #     if row:
-        #         popup = Toplevel(self.root)
-        #         popup.title("Customer Account History")
-        #         center_window(popup,800,600)
-
-        #         img = PhotoImage(file=resource_path("assets/back.png"))
-        #         smaller_img = img.subsample(30, 30)
-
-        #         bk_btn = ttk.Button(popup,image=smaller_img,cursor="hand2",command=lambda:popup.destroy())
-        #         bk_btn.image = smaller_img
-        #         bk_btn.pack(anchor="nw", padx=10, pady=10)
-
-        #         ttk.Label(popup,text="Customer Account History",font=("Helvetica",17,"bold")).pack(pady=5)
-        #         details_frame = Frame(popup)
-        #         details_frame.pack(pady=10)
-
-        #         ttk.Label(details_frame,text=f"Customer Name: {row[3]}",font=("Helvetica",12,"bold")).grid(row=0,column=0, padx=7, pady=5)
-        #         ttk.Label(details_frame,text=f"Customer CNIC: {row[4]}",font=("Helvetica",12,"bold")).grid(row=0,column=1, padx=7, pady=5)
-        #         ttk.Label(details_frame,text=f"Total Amount Paid: {row[6]}",font=("Helvetica",12,"bold")).grid(row=1,column=0, padx=7, pady=5)
-        #         ttk.Label(details_frame,text=f"Balance: {row[7]}",font=("Helvetica",12,"bold")).grid(row=1,column=1, padx=7, pady=5)
-
-        #         table_acc_his_columns =["S.NO", "Date","Amount Paid","Balance"]
-        #         table_acc_his_widths= [50,100,130,120]
-        #         table_acc_his = create_treeview(popup, table_acc_his_columns, table_acc_his_widths,18)
-        #         self.db.load_cr_acc_history(row,table_acc_his)
-
-        #     else:
-        #         messagebox.showerror("Input Missing","Please Select a Customer!")
-        
         btn_frame = Frame(self.root)
         btn_frame.pack(pady=10)
 
@@ -2012,3 +1988,4 @@ class windows:
 
             self.db.save_expense(ledger_det)
             clear_entries_expense(date_entry,amount_entry,note_entry)
+            
