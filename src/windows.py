@@ -2,7 +2,7 @@ from tkinter import ttk,messagebox,Frame,Toplevel,PhotoImage,END,Canvas,BooleanV
 from tkinter import *
 from src.database import database
 from src.utils import center_window,destroy_widgets,create_treeview,get_selected,grid_label,grid_create_treeview,print_invoice,add_placeholder,resource_path,remove_stock,validate_frame,stk_delete,stk_update
-from src.utils import invoice_details,product_details
+from src.utils import invoice_details,product_details,clear_entries_expense
 from datetime import date,datetime
 from tkcalendar import DateEntry
 
@@ -2011,3 +2011,4 @@ class windows:
             }            
 
             self.db.save_expense(ledger_det)
+            clear_entries_expense(date_entry,amount_entry,note_entry)

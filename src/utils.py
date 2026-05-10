@@ -7,6 +7,7 @@ from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.lib.styles import ParagraphStyle
 import os
 import sys
+from datetime import date
 
 def center_window(root,width, height):
     screen_width = root.winfo_screenwidth()
@@ -498,3 +499,8 @@ def product_details(product,prod_labels,inv_no,db):
                             prod_labels[sett].config(state="!disabled")
                         else:
                             prod_labels[sett].config(state="disabled")
+
+def clear_entries_expense(date_entry,amount,description):
+    date_entry.set_date(date.today())
+    amount.delete(0, 'end')
+    description.delete("1.0", "end")
