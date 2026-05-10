@@ -1831,7 +1831,7 @@ class windows:
                         balance = 0 - amount
 
                     details = {
-                        "date":date,
+                        "date":datetime.strptime(date, "%Y-%m-%d"),
                         "description":description,
                         "debit":0,
                         "credit":amount,
@@ -1912,7 +1912,7 @@ class windows:
                         date = f"{now.strftime("%Y-%m-%d")}"
                         description = f"Paid Amount against returned Invoice No {invoice_no}"
                         details = {
-                            "date":date,
+                            "date":datetime.strptime(date, "%Y-%m-%d"),
                             "description":description,
                             "debit":0,
                             "credit":amount,
@@ -1947,9 +1947,11 @@ class windows:
 
         ttk.Label(self.root,text="General Ledger",font=("Helvetica",20,"bold")).pack(pady=10)
 
-        sales_table_columns = ["S NO","Date","Description","Debit","Credit","Balance"]
-        sales_columns_width = [50,100,400,130,130,130]
-        table_sales = create_treeview(self.root, sales_table_columns, sales_columns_width,18)
+        ledger_table_columns = ["S NO","Date","Description","Debit","Credit","Balance"]
+        ledger_columns_width = [50,100,500,100,100,100]
+        table_ledger = create_treeview(self.root, ledger_table_columns, ledger_columns_width,18)
+
+        self.db.load_ledger(table_ledger)
 
 
                         

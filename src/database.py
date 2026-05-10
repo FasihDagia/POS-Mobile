@@ -491,13 +491,13 @@ class database:
         for row in table.get_children():
             table.delete(row)
 
-        entries = self.ledger.find().sort("_id", -1)
+        entries = self.ledger.find()
         s_no =1
         for entry in entries:
             
             table.insert("", END,values=(
                 s_no,
-                entry.get("date"),
+                entry.get("date").strftime("%Y-%m-%d"),
                 entry.get("description"),
                 entry.get("debit"),
                 entry.get("credit"),
