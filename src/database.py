@@ -33,7 +33,7 @@ class database:
             root.destroy()
             sys.exit()
             
-        self.db = self.client["test"]
+        self.db = self.client["mh_point"]
         self.stock = self.db["stock"]
         self.credit_accounts= self.db["credit_accounts"]
         self.sales = self.db["sales"]
@@ -354,8 +354,8 @@ class database:
             if entry.get("status") == "unsettled":
                 table.insert("", END,values=(
                     s_no,
-                    entry.get("inv_date"),
-                    entry.get("due_date"),
+                    entry.get("inv_date").strftime("%Y-%m-%d"),
+                    entry.get("due_date").strftime("%Y-%m-%d"),
                     entry.get("customer_name"),
                     entry.get("customer_cnic"),
                     entry.get("down_payment"),
@@ -386,7 +386,6 @@ class database:
                     "total_amount_paid": (int(entry.get("total_amount_paid"))+int(data["amount_receivable"])),
                     "balance": data["balance"],
                 }})
-            self.credit_accounts_history.insert_one(data)
 
     def load_sales(self,table):
         for row in table.get_children():
@@ -399,7 +398,7 @@ class database:
                 if entry.get("down_payment") == 0:
                     table.insert("", END,values=(
                         s_no,
-                        entry.get("inv_date"),
+                        entry.get("inv_date").strftime("%Y-%m-%d"),
                         entry.get("invoice_no"),
                         entry.get("customer_name"),
                         entry.get("customer_cnic"),
@@ -410,7 +409,7 @@ class database:
                 else:
                     table.insert("", END,values=(
                         s_no,
-                        entry.get("inv_date"),
+                        entry.get("inv_date").strftime("%Y-%m-%d"),
                         entry.get("invoice_no"),
                         entry.get("customer_name"),
                         entry.get("customer_cnic"),

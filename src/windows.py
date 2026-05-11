@@ -661,12 +661,13 @@ class windows:
         amount_recev_entry.grid(row=2,column=1,padx=5,pady=7)
         
         nt_du_dt_label = ttk.Label(entry_frame,text="Next Due Date:",font=("Helvetica",11,"bold"),foreground="grey")
-        nt_du_dt_entry = ttk.Entry(entry_frame,font=("Helvetica",11,"bold"),state=["disabled"])
+        nt_du_dt_entry = DateEntry(entry_frame, width=12, background='darkblue',
+                       foreground='white', borderwidth=2,date_pattern="yyyy-mm-dd")
+        date_entry.set_date(date.today()) 
 
-        text = "(yyyy-mm-dd)"
         nt_du_dt_label.grid(row=2,column=2,padx=5,pady=7)
         nt_du_dt_entry.grid(row=2,column=3,padx=5,pady=7)
-        add_placeholder(nt_du_dt_entry,text)
+        
 
         ttk.Label(entry_frame,text="Balance Due",font=("Helvetica",12,"bold")).grid(row=3,column=1,pady=10)
         bal_due_label = ttk.Label(entry_frame,text=0.00,font=("Helvetica",12,"bold"))
@@ -687,7 +688,6 @@ class windows:
             elif int(amount) < int(bal_amount_label.cget("text")):
                 nt_du_dt_label.configure(foreground="black")
                 nt_du_dt_entry.configure(state=["!disabled"])
-                add_placeholder(nt_du_dt_entry,text)
             else:
                 nt_du_dt_label.configure(foreground="grey")
                 nt_du_dt_entry.configure(state=["disabled"])
@@ -710,13 +710,13 @@ class windows:
 
             try:
                 
-                date = date_entry.get()
+                date = datetime.strptime(date_entry.get(), "%Y-%m-%d")
                 cus_name = customer_name_entry.get()
                 cus_cnic = customer_cnic_entry.get()
-                amount_receivable = amount_recev_entry.get()
+                amount_receivable = int(amount_recev_entry.get())
                 bal_due = int(bal_due_label.cget("text"))
                 if bal_due > 0:
-                    due_date = nt_du_dt_entry.get()
+                    due_date =datetime.strptime(nt_du_dt_entry.get(), "%Y-%m-%d")
                 else:
                     due_date = "Nill"
             except:
@@ -737,7 +737,7 @@ class windows:
                 balance = 0 + amount_receivable
 
             ledger_det = {
-                "date": datetime.strptime(date, "%Y-%m-%d"),
+                "date": date,
                 "description":f"Received amount from {cus_name} against credit settlement",
                 "debit": int(amount_receivable),
                 "credit": 0,
@@ -1073,8 +1073,11 @@ class windows:
             c = condition_entry.get()
 
             imeis = []
-            for imei in model_data[m][s][c]:
-                imeis.append(imei["imei"])
+            if type(model_data[m][s][c]) == dict:
+                imeis.append(model_data[m][s][c]["imei"])
+            else:
+                for imei in model_data[m][s][c]:
+                    imeis.append(imei["imei"])
             
             imei_entry['values'] = imeis
 
@@ -1264,8 +1267,6 @@ class windows:
                             if i["imei"] == str(values[1]):
                                 supplier = key 
                                 purchase_price = int(i["purchase_price"])
-                    print(supplier)
-                    print(purchase_price)
 
                 row = {
                     "imei": str(values[1]),
