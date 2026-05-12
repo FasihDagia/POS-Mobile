@@ -524,14 +524,14 @@ class database:
                 self.sales.update_one(filter,{"$set":{"total_inv_amount":total_invoice_amount}})
                 break
 
-    def load_ledger(self,table):
+    def load_ledger(self,table,date):
+        
         for row in table.get_children():
             table.delete(row)
 
-        entries = self.ledger.find()
+        entries = self.ledger.find({"date":date})
         s_no =1
-        for entry in entries:
-            
+        for entry in entries:    
             table.insert("", END,values=(
                 s_no,
                 entry.get("date").strftime("%Y-%m-%d"),

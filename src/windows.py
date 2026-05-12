@@ -1933,11 +1933,20 @@ class windows:
 
         ttk.Label(self.root,text="General Ledger",font=("Helvetica",20,"bold")).pack(pady=10)
 
+        entry_frame = Frame(self.root)
+        entry_frame.pack(pady=10)
+
+        ttk.Label(entry_frame,text="Select Date",font=("Helvetica",14,"bold")).grid(row=0,column=0,padx=7)
+        date_entry = DateEntry(entry_frame, width=12, background='darkblue',
+                       foreground='white', borderwidth=2,date_pattern="yyyy-mm-dd")
+        date_entry.grid(row=0,column=1,padx=7)
+
+        ttk.Button(entry_frame,text="View",cursor="hand2",command=lambda:self.db.load_ledger(table_ledger,datetime.strptime(date_entry.get(), "%Y-%m-%d"))).grid(row=0,column=2,padx=7) 
+        
         ledger_table_columns = ["S NO","Date","Description","Debit","Credit","Balance"]
         ledger_columns_width = [50,100,500,100,100,100]
         table_ledger = create_treeview(self.root, ledger_table_columns, ledger_columns_width,18)
 
-        self.db.load_ledger(table_ledger)
 
     def expense(self):
         destroy_widgets(self.root)
