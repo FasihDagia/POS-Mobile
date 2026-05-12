@@ -12,3 +12,5 @@ wheels/
 test.py
 
 POS System.spec
+installer.iss
+output
